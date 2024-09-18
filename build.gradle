@@ -1,0 +1,134 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.8'
+    id 'xyz.jpenilla.run-velocity' version '2.3.1'
+    id 'com.modrinth.minotaur' version '2.+'
+}
+
+group = 'io.freddi'
+
+// Helper function to execute git commands safely
+def execGitCommand(String command) {
+    try {
+        return command.execute().text.trim()
+    } catch (Exception e) {
+        return null // Return null if the git command fails
+    }
+}
+
+// Define version tag from git tags
+def defineTag = {
+    def tagInfo = execGitCommand('git describe --tags')
+    if (!tagInfo) return 'unknown'
+    def match = tagInfo =~ /^(.+?)-\d+-g[0-9a-f]{7}$/
+    return match ? match.group(1) : tagInfo
+}
+def tag = defineTag()
+
+// Define commit hash from git
+def defineCommitHash = {
+    return execGitCommand('git rev-parse --short HEAD') ?: 'unknown'
+}
+def commitHash = defineCommitHash()
+
+// Define version with tag and commit hash
+def defineVersion = {
+    return "${defineTag()}-${commitHash}"
+}
+version = defineVersion()
+
+// Function to extract changelog for the current version
+def getChangelog = {
+    def versionTag = project.version.split("-")[0]
+    def changelogFile = file('CHANGELOG.md')
+    def changelogContent = ''
+    def capture = false
+    changelogFile.eachLine { line ->
+        if (line.startsWith("## [${versionTag}]")) {
+            capture = true
+        } else if (line.startsWith("## [") && capture) {
+            capture = false
+        } else if (capture) {
+            changelogContent += line + '\n'
+        }
+    }
+    return changelogContent
+}
+
+// Repositories
+repositories {
+    mavenCentral()
+    maven {
+        name = "papermc-repo"
+        url = "https://repo.papermc.io/repository/maven-public/"
+    }
+    maven {
+        name = "sonatype"
+        url = "https://oss.sonatype.org/content/groups/public/"
+    }
+    gradlePluginPortal()
+}
+
+// Dependencies
+dependencies {
+    compileOnly("com.velocitypowered:velocity-api:3.3.0-SNAPSHOT")
+    annotationProcessor("com.velocitypowered:velocity-api:3.3.0-SNAPSHOT")
+}
+
+// Java configuration
+def targetJavaVersion = 21
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(targetJavaVersion)
+}
+
+// Velocity run configuration
+tasks.runVelocity {
+    velocityVersion("3.3.0-SNAPSHOT")
+}
+
+// Modrinth configuration
+modrinth {
+    token = System.getenv("MODRINTH_API_TOKEN")
+    projectId = "HrTclB8n"
+    version = project.version
+    changelog = getChangelog()
+    versionType = "release"
+    uploadFile = jar
+    gameVersions = mcVersions.split(',').collect { it.trim() }
+    loaders = List.of("velocity")
+    syncBodyFrom = file("README.md").text
+}
+
+def templateSource = file('src/main/templates')
+def templateDest = layout.buildDirectory.dir('generated/sources/templates').get().asFile
+
+def generateTemplates = tasks.register('generateTemplates', Copy) { task ->
+    def props = [
+            'version': project.version,
+            'commit' : commitHash,
+            'tag'    : tag,
+            'name'   : project.name,
+            'id'     : project.name.toLowerCase(),
+            'group'  : project.group,
+            'author' : "Freddi"
+    ]
+
+    task.inputs.properties props
+
+    task.from templateSource
+    task.into templateDest
+    task.expand props
+}
+
+tasks.compileJava.dependsOn(generateTemplates)
+
+sourceSets.main.java.srcDir(generateTemplates.map { it.outputs })
+
+project.idea.project.settings.taskTriggers.afterSync(generateTemplates)
+project.eclipse.synchronizationTasks(generateTemplates)

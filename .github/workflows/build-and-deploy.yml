@@ -1,0 +1,30 @@
+name: Deploy to Modrinth
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build and publish to Modrinth
+        run: ./gradlew modrinth
+        env:
+          MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          BUILD_NUMBER: ${{ github.run_number }}

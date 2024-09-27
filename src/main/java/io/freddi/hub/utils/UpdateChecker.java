@@ -1,8 +1,9 @@
-package io.freddi.hub;
+package io.freddi.hub.utils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.slf4j.Logger;
+import io.freddi.hub.Hub;
+import io.freddi.hub.Props;
 
 import java.lang.module.ModuleDescriptor;
 import java.net.URI;
@@ -12,26 +13,27 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 
-public class UpdateChecker {
+public class UpdateChecker extends Utils<UpdateChecker> {
 
-    private final Logger logger;
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("hub | updatechecker");
     public Boolean updateAvailable = false;
-    public Hub hub;
     public String latest = Props.VERSION;
     private boolean running;
 
-    public UpdateChecker(Hub hub, Logger logger) {
-        this.hub = hub;
-        this.logger = logger;
+    public UpdateChecker(Hub hub) {
+        super(hub);
         Executors.newVirtualThreadPerTaskExecutor().execute(this::checkForUpdates);
     }
 
     private void checkForUpdates() {
         if (running)
             return;
-        while (hub.config.updateChecker.enabled && !updateAvailable) {
+        ConfigUtils configUtils = Utils.util(ConfigUtils.class);
+        MessageUtils messageUtils = Utils.util(MessageUtils.class);
+        HttpClient client = HttpClient.newHttpClient();
+        while (configUtils.config().updateChecker.enabled && !updateAvailable) {
+            messageUtils.broadcastDebugMessage("🔎 Checking for Updates...");
             running = true;
-            HttpClient client = HttpClient.newHttpClient();
             try {
                 var body = JsonParser.parseString(
                         client.send(
@@ -48,8 +50,8 @@ public class UpdateChecker {
                     logger.warn("Unable to check for Updates!");
                     return;
                 }
-                JsonObject lastestVersion = body.getAsJsonArray().get(0).getAsJsonObject();
-                ModuleDescriptor.Version latest = ModuleDescriptor.Version.parse(lastestVersion.get("version_number").getAsString());
+                JsonObject latestVersion = body.getAsJsonArray().get(0).getAsJsonObject();
+                ModuleDescriptor.Version latest = ModuleDescriptor.Version.parse(latestVersion.get("version_number").getAsString());
                 ModuleDescriptor.Version current = ModuleDescriptor.Version.parse(Props.VERSION);
                 int compare = latest.compareTo(current);
                 if (compare > 0) {
@@ -65,10 +67,11 @@ public class UpdateChecker {
                 logger.warn("Failed to check for updates");
             }
             try {
-                Thread.sleep((long) Math.max(hub.config.updateChecker.checkIntervalInMin, 5) * 60 * 1000);
+                Thread.sleep((long) Math.max(configUtils.config().updateChecker.checkIntervalInMin, 5) * 60 * 1000);
             } catch (InterruptedException ignored) {
             }
         }
+        client.close();
         running = false;
 
     }

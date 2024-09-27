@@ -1,6 +1,6 @@
 package io.freddi.hub;
 
-class Props {
+public class Props {
     public static final String ID = "${id}";
     public static final String VERSION = "${version}";
     public static final String COMMIT = "${commit}";

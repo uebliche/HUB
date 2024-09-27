@@ -73,7 +73,7 @@ repositories {
 // Dependencies
 dependencies {
     compileOnly("com.velocitypowered:velocity-api:3.3.0-SNAPSHOT")
-    annotationProcessor("com.velocitypowered:velocity-api:3.3.0-SNAPSHOT")
+    annotationProcessor("com.velocitypowered:velocity-api:" + project.velocityVersion)
 }
 
 // Java configuration
@@ -89,7 +89,7 @@ tasks.withType(JavaCompile).configureEach {
 
 // Velocity run configuration
 tasks.runVelocity {
-    velocityVersion("3.3.0-SNAPSHOT")
+    velocityVersion(project.velocityVersion)
 }
 
 // Modrinth configuration

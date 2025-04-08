@@ -1,4 +1,13 @@
 # Changelog
+## [1.1.0] - 2025-04-08
+### Added
+- Console log for debugging purposes.
+
+### Changed
+- /lobby command search now uses a more efficient method to find the perfect lobby.
+
+### Improved
+- Server searching
 
 ## [1.0.1] - 2024-12-07
 Code Cleanup

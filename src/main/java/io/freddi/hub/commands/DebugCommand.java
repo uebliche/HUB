@@ -140,7 +140,7 @@ public class DebugCommand {
                                         messageUtils.sendDebugCommandMessage(player, "❌ Lobby " + lobbyArg + " not found!");
                                         return 1;
                                     }
-                                    Utils.util(LobbyUtils.class).getLobbies(lobby, Duration.of(10, ChronoUnit.MILLIS), executor).forEach(pingResultCompletableFuture -> {
+                                    Utils.util(LobbyUtils.class).getLobbies(player, lobby, Duration.of(10, ChronoUnit.MILLIS), executor).forEach(pingResultCompletableFuture -> {
                                         pingResultCompletableFuture.thenAccept(pingResult -> {
                                             messageUtils.sendDebugCommandMessage(player, "🤖 Ping Result: " + pingResult);
                                         });

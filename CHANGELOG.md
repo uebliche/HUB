@@ -1,4 +1,8 @@
 # Changelog
+## [1.1.1] - 2025-04-08
+### Fixed
+- Missing Messages
+
 ## [1.1.0] - 2025-04-08
 ### Added
 - Console log for debugging purposes.

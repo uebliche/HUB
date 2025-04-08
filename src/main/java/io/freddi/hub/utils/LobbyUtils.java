@@ -23,14 +23,14 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         super(hub);
     }
 
-    public Stream<CompletableFuture<PingResult>> getLobbies(Lobby lobby, Duration timeout, Executor executor) {
+    public Stream<CompletableFuture<PingResult>> getLobbies(Player player, Lobby lobby, Duration timeout, Executor executor) {
         return hub.server().getAllServers().stream().filter(registeredServer -> lobby.filter.matcher(registeredServer.getServerInfo().getName()).matches()).map(registeredServer -> CompletableFuture.supplyAsync(() -> {
             var time = System.currentTimeMillis();
             try {
                 var ping = registeredServer.ping(PingOptions.builder().timeout(timeout).build()).join();
                 if (ping != null && ping.getPlayers().isPresent()) {
                     var players = ping.getPlayers().get();
-                    return new PingResult(System.currentTimeMillis() - time, registeredServer, players);
+                    return new PingResult(player, System.currentTimeMillis() - time, registeredServer, players, lobby);
                 }
             } catch (Exception ignored) {
             }
@@ -39,6 +39,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
     }
 
     public PingResult findBest(Player player) {
+        var configUtils = Utils.util(ConfigUtils.class);
         var messageUtils = Utils.util(MessageUtils.class);
         var config = Utils.util(ConfigUtils.class).config();
         var playerUtils = Utils.util(PlayerUtils.class);
@@ -59,7 +60,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
             for (Lobby lobby : sortedLobbies) {
                 if (!playerUtils.permissionCheck(player, lobby)) continue;
 
-                var servers = getLobbies(lobby, Duration.ofMillis(duration), executor)
+                var servers = getLobbies(player, lobby, Duration.ofMillis(duration), executor)
                         .map(CompletableFuture::join)
                         .filter(Objects::nonNull)
                         .toList();
@@ -79,7 +80,6 @@ public class LobbyUtils extends Utils<LobbyUtils> {
                 messageUtils.sendDebugMessage(player, "🤖 Finder Timeout Duration got increased to " + duration);
             }
         }
-
         return best;
     }
 }

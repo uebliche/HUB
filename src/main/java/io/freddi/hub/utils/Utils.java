@@ -6,6 +6,7 @@ import java.util.HashMap;
 
 public class Utils<T extends Utils<?>> {
 
+    @SuppressWarnings("rawtypes")
     private static final HashMap<Class<? extends Utils>, Utils> UTILS = new HashMap<>();
     protected final org.slf4j.Logger logger;
     protected final Hub hub;
@@ -17,6 +18,7 @@ public class Utils<T extends Utils<?>> {
     }
 
 
+    @SuppressWarnings("unchecked")
     public static <T> T util(Class<T> utilClass) {
         return (T) UTILS.get(utilClass);
     }

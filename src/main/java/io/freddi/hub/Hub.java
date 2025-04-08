@@ -69,7 +69,7 @@ public class Hub {
     @Subscribe
     public void onKickedFromServer(KickedFromServerEvent event) {
         if (Utils.util(ConfigUtils.class).config().autoSelect.onServerKick)
-            event.getPlayer().createConnectionRequest(Utils.util(LobbyUtils.class).findBest(event.getPlayer()).server()).getServer();
+            Utils.util(LobbyUtils.class).findBest(event.getPlayer()).connect();
 
     }
 

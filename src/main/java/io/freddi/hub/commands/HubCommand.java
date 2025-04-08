@@ -95,60 +95,19 @@ public class HubCommand {
             messageUtils.sendMessage(player, "<red>❌ User is on no Server!");
             return 0;
         }
-
-        player.createConnectionRequest(LobbyUtils.util(LobbyUtils.class).findBest(player).server()).connect().thenAccept(connection -> {
-            if (connection.isSuccessful()) {
-                messageUtils.sendMessage(player, "<green>✔ Connection successful!");
-            } else {
-                messageUtils.sendMessage(player, "<red>❌ Connection failed!");
-            }
-        }).exceptionally(throwable -> {
-            messageUtils.sendMessage(player, "<red>❌ Connection failed: " + throwable.getMessage());
-            return null;
-        });
-
-//        executor.execute(() -> {
-//            messageUtils.sendDebugMessage(player, "✈ Sending Player to Lobby!");
-//            boolean isConnected = false;
-//            messageUtils.sendDebugMessage(player, "🔎 Found Lobbies in Config: " + String.join(", ", configUtils.config().lobbies.stream().map(lobby -> lobby.name).toList()));
-//            for (Lobby lobby : configUtils.config().lobbies) {
-//                messageUtils.sendDebugMessage(player, "❓ Checking if user can join: " + lobby.name);
-//                if (isConnected) {
-//                    messageUtils.sendDebugMessage(player, "<red>❌ User is Already Connected.");
-//                    return;
-//                }
-//                if (lobby.permission.isBlank() || player.hasPermission(lobby.permission)) {
-//                    messageUtils.sendDebugMessage(player, "<green>✔ User has Permission to join " + lobby.name + ".");
-//                    if (player.getCurrentServer().isPresent() && lobby.filter.matcher(player.getCurrentServer().get().getServerInfo().getName()).matches()) {
-//                        messageUtils.sendDebugMessage(player, "<red>❌ Current server matches the target Lobby group!");
-//                        messageUtils.sendMessage(player, lobby.messages().alreadyConnectedMessage == null ? configUtils.config().messages.alreadyConnectedMessage : lobby.messages().alreadyConnectedMessage, player.getCurrentServer().get().getServer(), lobby);
-//                        isConnected = true;
-//                        return;
-//                    } else {
-//                        messageUtils.sendDebugMessage(player, "<green>✔ Current Server is not matching the target Lobby group!");
-//                    }
-//                    var servers = Utils.util(LobbyUtils.class).getLobbies(lobby, Duration.of(10, ChronoUnit.MILLIS), executor).map(CompletableFuture::join).filter(Objects::nonNull).toList();
-//                    messageUtils.sendDebugMessage(player, "🔎 Found " + servers.size() + " servers.");
-//                    var server = servers.stream()
-//                            .min(Comparator.comparingDouble(pingResult -> Math.abs((pingResult.usage() + 0.2) - 0.5)))
-//                            .orElse(null);
-//                    if (server != null) {
-//                        messageUtils.sendDebugMessage(player, "🔎 Best Server: " + server.server().getServerInfo().getName());
-//                        if (Utils.util(PlayerUtils.class).connect(player, server.server(), lobby).join()) {
-//                            messageUtils.sendDebugMessage(player, "<green>✔ Connection successful!");
-//                            isConnected = true;
-//                            return;
-//                        }
-//                        messageUtils.sendDebugMessage(player, "<red>❌ Connection failed!");
-//                    } else {
-//                        messageUtils.sendDebugMessage(player, "<red>❌ No Server found!");
-//                        messageUtils.sendMessage(player, lobby.messages().serverDisconnectedMessage == null ? configUtils.config().messages.serverDisconnectedMessage : lobby.messages().serverDisconnectedMessage, lobby, player);
-//                    }
+        LobbyUtils.util(LobbyUtils.class).findBest(player).connect();
+//        Optional.ofNullable(LobbyUtils.util(LobbyUtils.class).findBest(player)).ifPresentOrElse(pingResult -> {
+//            player.createConnectionRequest(pingResult.server()).connect().thenAccept(connection -> {
+//                if (connection.isSuccessful()) {
+//                    messageUtils.sendDebugMessage(player, "<green>✔ Connection successful!");
+//                    messageUtils.sendMessage(player, pingResult.lobby().messages().successMessage == null ? configUtils.config().messages.successMessage : pingResult.lobby().messages().successMessage, pingResult.lobby(), player);
 //                } else {
-//                    messageUtils.sendDebugMessage(player, "<red>❌ User has no Permission to join " + lobby.name + ".");
+//                    messageUtils.sendDebugMessage(player, "<red>❌ Connection failed!");
 //                }
-//            }
+//            });
+//        }, () -> {
 //            messageUtils.sendMessage(player, configUtils.config().systemMessages.noLobbyFoundMessage, player);
+//            messageUtils.sendDebugMessage(player, "<red>❌ No Server found!");
 //        });
         return 1;
     }

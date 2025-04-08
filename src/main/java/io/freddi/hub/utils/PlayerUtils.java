@@ -31,6 +31,16 @@ public class PlayerUtils extends Utils<PlayerUtils> {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
         messageUtils.sendDebugMessage(player, "✈ Sending player to " + server.getServerInfo().getName() + " as member of " + lobby.name);
+        if(player.getCurrentServer().isPresent()){
+            messageUtils.sendDebugMessage(player, "🔎 Checking if user is already connected to " + server.getServerInfo().getName());
+            if (player.getCurrentServer().get().getServerInfo().getName().equals(server.getServerInfo().getName())) {
+                messageUtils.sendDebugMessage(player, "<red>❌ User is already connected to " + server.getServerInfo().getName() + ".");
+                messageUtils.sendMessage(player, lobby.messages().alreadyConnectedMessage == null ? configUtils.config().messages.alreadyConnectedMessage : lobby.messages().alreadyConnectedMessage, server, lobby);
+                return CompletableFuture.completedFuture(false);
+            }
+        } else {
+            messageUtils.sendDebugMessage(player, "<red>❌ User is not connected to any server.");
+        }
         return player.createConnectionRequest(server).connect().thenApply(connection -> {
             if (connection.getStatus() == ConnectionRequestBuilder.Status.SUCCESS) {
                 messageUtils.sendMessage(player, lobby.messages().successMessage == null ? configUtils.config().messages.successMessage : lobby.messages().successMessage, server, lobby);

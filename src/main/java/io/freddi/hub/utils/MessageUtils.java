@@ -14,6 +14,7 @@ import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,9 +111,11 @@ public class MessageUtils extends Utils<MessageUtils> {
     }
 
     public void sendDebugMessage(Audience recipient, Component message) {
+        logger.info(ANSIComponentSerializer.ansi().serialize(message));
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
-        if (configUtils.config().debug.enabled && (((recipient instanceof Player player) && Utils.util(PlayerUtils.class).canDebug(player)) || recipient instanceof ConsoleCommandSource))
+        if (configUtils.config().debug.enabled && (((recipient instanceof Player player) && Utils.util(PlayerUtils.class).canDebug(player)) || recipient instanceof ConsoleCommandSource)) {
             recipient.sendMessage(Component.empty().append(Component.text("[Debug]: ").style(Style.style(TextDecoration.BOLD, NamedTextColor.YELLOW))).append(message));
+        }
     }
 
 

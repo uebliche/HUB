@@ -1,0 +1,5 @@
+name: ${name}
+version: '${version}'
+main: net.uebliche.hub.HubPlugin
+description: ${description}
+api-version: '${apiVersion}'

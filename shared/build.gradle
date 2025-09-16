@@ -1,0 +1,34 @@
+plugins {
+    id 'java'
+}
+
+def templateSource = file('src/main/templates')
+def templateDest = layout.buildDirectory.dir('generated/sources/templates')
+
+task generateTemplates(type: Copy) {
+    def props = [
+            'version': rootProject.version?.toString(),
+            'commit' : rootProject.ext.commitCode,
+            'tag'    : rootProject.ext.releaseDate,
+            'name'   : rootProject.name,
+            'id'     : rootProject.name.toLowerCase(),
+            'group'  : project.group,
+            'author' : "Freddi"
+    ]
+
+    inputs.properties(props)
+    from templateSource
+    into templateDest
+    expand props
+}
+
+// Stelle sicher, dass die Templates generiert werden, bevor der Code kompiliert wird
+compileJava.dependsOn generateTemplates
+
+// Füge die generierten Templates zu den Quellordnern hinzu
+sourceSets.main.java.srcDir templateDest
+
+// Setze das Verzeichnis der generierten Templates für späteren Zugriff
+ext.generatedTemplateDir = templateDest.get().asFile
+
+

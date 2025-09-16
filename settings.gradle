@@ -1,1 +1,14 @@
+pluginManagement {
+    plugins {
+        id "org.jetbrains.gradle.plugin.idea-ext" version settings.ext.ideaExtVersion
+        id "xyz.jpenilla.run-paper" version settings.ext.runTaskVersion
+        id "xyz.jpenilla.run-velocity" version settings.ext.runTaskVersion
+        id "com.modrinth.minotaur" version settings.ext.modrinthVersion
+    }
+}
+
 rootProject.name = 'HUB'
+
+include 'shared'
+include 'velocity'
+include 'paper'

@@ -21,6 +21,10 @@ tasks.processResources {
 
 tasks.jar {
     dependsOn 'processResources'
+    archiveBaseName.set('hub')
+    def targetVersion = (project.paperVersion ?: 'unknown').toString()
+    def sanitizedVersion = targetVersion.replaceAll("[^A-Za-z0-9._-]", "-")
+    archiveClassifier.set("paper-${sanitizedVersion}")
     manifest {
         attributes["paperweight-mappings-namespace"] = "mojang"
     }

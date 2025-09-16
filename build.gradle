@@ -1,4 +1,6 @@
 import java.net.URL
+import java.io.InputStream
+import java.io.InputStreamReader
 import groovy.json.JsonSlurper
 import java.nio.charset.StandardCharsets
 
@@ -10,7 +12,8 @@ def fetchJson(String url) {
     connection.readTimeout = 15000
     connection.doInput = true
     connection.connect()
-    try (def reader = connection.getInputStream().newReader(StandardCharsets.UTF_8)) {
+    try (InputStream stream = connection.getInputStream()) {
+        def reader = new InputStreamReader(stream, StandardCharsets.UTF_8)
         return new JsonSlurper().parse(reader)
     }
 }
@@ -117,13 +120,38 @@ List<String> fetchPaperGameVersions(String minVersion) {
     }
 }
 
+String attemptSuffix(int attemptNumber) {
+    if (attemptNumber <= 1) {
+        return ''
+    }
+    int n = attemptNumber
+    StringBuilder builder = new StringBuilder()
+    while (n > 0) {
+        n--
+        builder.insert(0, (char) ('A' + (n % 26)))
+        n = (int) (n / 26)
+    }
+    return builder.toString()
+}
+
 String resolveTag() {
     def provided = (project.findProperty('tag') ?: System.getenv('TAG') ?: System.getenv('GITHUB_REF_NAME'))
     provided = provided ? provided.toString().trim() : ''
     if (provided) {
         return provided
     }
-    return "dev-${new Date().format('yyyyMMdd-HHmmss')}"
+
+    def suffixOverride = (project.findProperty('tagSuffix') ?: System.getenv('TAG_SUFFIX'))
+    suffixOverride = suffixOverride ? suffixOverride.toString().trim().toUpperCase() : ''
+    String baseDate = new Date().format('yyyy-MM-dd')
+    if (suffixOverride) {
+        return baseDate + suffixOverride
+    }
+
+    def attemptSource = (project.findProperty('buildAttempt') ?: System.getenv('BUILD_ATTEMPT') ?: System.getenv('GITHUB_RUN_ATTEMPT'))
+    int attemptNumber = (attemptSource?.toString()?.isInteger()) ? attemptSource.toString().toInteger() : 1
+
+    return baseDate + attemptSuffix(attemptNumber)
 }
 
 def resolvedTag = resolveTag()
@@ -187,3 +215,4 @@ subprojects {
         options.release.set(targetJavaVersion)
     }
 }
+

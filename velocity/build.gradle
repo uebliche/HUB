@@ -9,16 +9,22 @@ dependencies {
     implementation project(':shared')
     compileOnly("com.velocitypowered:velocity-api:" + project.velocityVersion)
     annotationProcessor("com.velocitypowered:velocity-api:" + project.velocityVersion)
+    compileOnly "net.kyori:adventure-text-minimessage:4.17.0"
+    compileOnly "net.kyori:adventure-text-serializer-ansi:4.17.0"
+    compileOnly "org.spongepowered:configurate-yaml:4.1.2"
 }
 
 // Velocity run configuration
 tasks.runVelocity {
     velocityVersion(project.velocityVersion)
 }
-
 tasks.jar {
     archiveBaseName.set('hub')
+    def targetVersion = (project.velocityVersion ?: 'unknown').toString()
+    def sanitizedVersion = targetVersion.replaceAll("[^A-Za-z0-9._-]", "-")
+    archiveClassifier.set("velocity-${sanitizedVersion}")
 }
+
 
 // Modrinth configuration
 modrinth {

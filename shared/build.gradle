@@ -6,10 +6,13 @@ def templateSource = file('src/main/templates')
 def templateDest = layout.buildDirectory.dir('generated/sources/templates')
 
 task generateTemplates(type: Copy) {
+    def commitCode = rootProject.hasProperty('commitCode') ? rootProject.property('commitCode') : (System.getenv('GITHUB_SHA') ?: 'dev')
+    def releaseTag = rootProject.hasProperty('releaseDate') ? rootProject.property('releaseDate') : (rootProject.ext.has('tag') ? rootProject.ext.tag : rootProject.version?.toString())
+
     def props = [
             'version': rootProject.version?.toString(),
-            'commit' : rootProject.ext.commitCode,
-            'tag'    : rootProject.ext.releaseDate,
+            'commit' : commitCode,
+            'tag'    : releaseTag,
             'name'   : rootProject.name,
             'id'     : rootProject.name.toLowerCase(),
             'group'  : project.group,

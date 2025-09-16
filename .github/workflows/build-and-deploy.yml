@@ -1,30 +1,99 @@
-name: Deploy to Modrinth
+name: Build and Test
 
 on:
   push:
-    tags:
-      - '*'
+    branches: ['**']
+  pull_request:
+    branches: ['**']
 
 jobs:
-  build-and-deploy:
+  generate-matrix:
     runs-on: ubuntu-latest
-
+    outputs:
+      versions: ${{ steps.matrix.outputs.versions }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Parse supported versions
+        id: matrix
+        run: |
+          set -euo pipefail
+          MIN_VERSION=$(grep '^minPaperVersion=' gradle.properties | cut -d'=' -f2 | tr -d '[:space:]')
+          if [ -z "$MIN_VERSION" ]; then
+            MIN_VERSION='1.16'
+          fi
+          VERSIONS=$(python .github/scripts/paper_versions.py "$MIN_VERSION")
+          if [ -z "$VERSIONS" ]; then
+            VERSIONS="[\"$MIN_VERSION\"]"
+          fi
+          echo "Resolved Paper versions: $VERSIONS"
+          echo "versions=$VERSIONS" >> "$GITHUB_OUTPUT"
+
+  velocity-build:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
         uses: actions/setup-java@v3
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
+      - name: Make Gradle executable
+        run: chmod +x gradlew
 
-      - name: Build and publish to Modrinth
-        run: ./gradlew modrinth
+      - name: Build Velocity module
+        run: ./gradlew clean :velocity:build
+
+  paper-build:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc_version: ${{ fromJson(needs.generate-matrix.outputs.versions) }}
+    name: Paper build ${{ matrix.mc_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Build Paper module
+        run: ./gradlew clean :paper:build -Pminecraft_version=${{ matrix.mc_version }}
+
+  update-readme-badges:
+    needs: [paper-build, generate-matrix]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update README tested versions
         env:
-          MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-          BUILD_NUMBER: ${{ github.run_number }}
+          TEST_MATRIX: ${{ needs.generate-matrix.outputs.versions }}
+        run: python .github/scripts/update_readme_badges.py
+
+      - name: Commit README update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: update tested Minecraft versions" || echo "No changes to commit"
+          git push

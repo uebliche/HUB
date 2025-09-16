@@ -1,0 +1,35 @@
+// Project: velocity
+plugins {
+    id 'xyz.jpenilla.run-velocity'
+    id 'com.modrinth.minotaur'
+}
+
+// Dependencies
+dependencies {
+    implementation project(':shared')
+    compileOnly("com.velocitypowered:velocity-api:" + project.velocityVersion)
+    annotationProcessor("com.velocitypowered:velocity-api:" + project.velocityVersion)
+}
+
+// Velocity run configuration
+tasks.runVelocity {
+    velocityVersion(project.velocityVersion)
+}
+
+tasks.jar {
+    archiveBaseName.set('hub')
+}
+
+// Modrinth configuration
+modrinth {
+    token = System.getenv("MODRINTH_API_TOKEN") ?: System.getenv("MODRINTH_TOKEN")
+    projectId = "HrTclB8n"
+    version = rootProject.version
+    changelog = System.getenv("CHANGELOG") ?: getChangelog()
+    versionType = rootProject.versionType
+    uploadFile = jar
+    gameVersions = rootProject.paperGameVersions
+    loaders = List.of("velocity")
+    syncBodyFrom = rootProject.file("README.md").text
+}
+

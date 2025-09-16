@@ -1,0 +1,38 @@
+// Project: Paper
+plugins {
+    id 'xyz.jpenilla.run-paper'
+    id 'com.modrinth.minotaur'
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:' + project.paperVersion
+    implementation project(':shared')
+}
+tasks.processResources {
+    filesMatching("**/paper-plugin.yml") {
+        expand(
+                name: rootProject.name,
+                version: rootProject.version,
+                description: rootProject.description,
+                apiVersion: "1.21"
+        )
+    }
+}
+
+tasks.jar {
+    dependsOn 'processResources'
+    archiveBaseName.set('hub')
+    def targetVersion = (project.paperVersion ?: 'unknown').toString()
+    def sanitizedVersion = targetVersion.replaceAll("[^A-Za-z0-9._-]", "-")
+    archiveClassifier.set("paper-${sanitizedVersion}")
+    manifest {
+        attributes["paperweight-mappings-namespace"] = "mojang"
+    }
+}
+
+tasks.runServer {
+    def targetVersion = (rootProject.hasProperty("paperGameVersions") && rootProject.paperGameVersions && !rootProject.paperGameVersions.isEmpty()) ? rootProject.paperGameVersions.last() : "latest"
+    minecraftVersion(targetVersion)
+}
+
+

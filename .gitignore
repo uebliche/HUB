@@ -112,10 +112,12 @@ gradle-app.setting
 **/build/
 
 # Common working directory
-run/
+velocity/run/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
 /node_modules
 /docs/.vitepress/dist
 /docs/.vitepress/cache
+paper/run/**
+.vscode/

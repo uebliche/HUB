@@ -1,0 +1,159 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        type: choice
+        description: Version Type
+        options:
+          - release
+          - beta
+          - alpha
+        default: release
+      debug:
+        type: boolean
+        description: Debug build
+        default: false
+      version:
+        type: string
+        description: Version to use (leave empty for auto-tag)
+        default: ''
+      only_description:
+        type: boolean
+        description: Only update the Modrinth description
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  DEBUG: ${{ github.event.inputs.debug }}
+  VERSION_TYPE: ${{ github.event.inputs.version_type }}
+
+jobs:
+  release:
+    if: ${{ github.event.inputs.only_description != 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      notes: ${{ steps.release_notes.outputs.notes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Create tag
+        id: tag
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            DATE=$(date +'%Y.%m.%d')
+            TAG="$DATE"
+            SUFFIX=""
+            while git rev-parse --quiet --verify "refs/tags/$TAG" >/dev/null; do
+              if [ -z "$SUFFIX" ]; then
+                SUFFIX="a"
+              else
+                LAST_CHAR=$(printf '%d' "'${SUFFIX}")
+                NEXT_CHAR=$((LAST_CHAR + 1))
+                SUFFIX=$(printf '\\%03o' "$NEXT_CHAR")
+                SUFFIX=$(printf '%b' "$SUFFIX")
+              fi
+              TAG="${DATE}${SUFFIX}"
+            done
+            VERSION="$TAG"
+          fi
+          BRANCH="${GITHUB_REF##*/}"
+          if [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ]; then
+            VERSION="${VERSION}-${BRANCH}"
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$VERSION"
+          git push origin "$VERSION"
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ github.event.inputs.version_type != 'release' }}
+
+      - name: Collect release notes
+        id: release_notes
+        run: |
+          notes=$(gh api /repos/${{ github.repository }}/releases/tags/${{ steps.tag.outputs.tag }} --jq '.body')
+          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$notes" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "$notes" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    if: ${{ github.event.inputs.only_description != 'true' }}
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Build project
+        run: ./gradlew clean build -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+
+      - name: Upload build artifacts to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release.outputs.tag }}
+          files: |
+            velocity/build/libs/*.jar
+            paper/build/libs/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}
+          CHANGELOG: ${{ needs.release.outputs.notes }}
+        run: ./gradlew :velocity:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+
+  update-description:
+    if: ${{ github.event.inputs.only_description == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Sync Modrinth description
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}
+        run: ./gradlew :velocity:modrinthSyncBody -Pdebug=${{ github.event.inputs.debug }}

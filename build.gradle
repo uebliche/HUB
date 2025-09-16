@@ -1,134 +1,218 @@
+import java.net.URL
+import java.io.InputStream
+import java.io.InputStreamReader
+import groovy.json.JsonSlurper
+import java.nio.charset.StandardCharsets
+
+
+def fetchJson(String url) {
+    def connection = new URL(url).openConnection()
+    connection.setRequestProperty('User-Agent', 'Hub-Build-Script')
+    connection.connectTimeout = 15000
+    connection.readTimeout = 15000
+    connection.doInput = true
+    connection.connect()
+    try (InputStream stream = connection.getInputStream()) {
+        def reader = new InputStreamReader(stream, StandardCharsets.UTF_8)
+        return new JsonSlurper().parse(reader)
+    }
+}
+
+int compareVersions(String a, String b) {
+    List<Integer> left = a.tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
+    List<Integer> right = b.tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
+    int size = Math.max(left.size(), right.size())
+    for (int i = 0; i < size; i++) {
+        int l = i < left.size() ? left.get(i) : 0
+        int r = i < right.size() ? right.get(i) : 0
+        if (l != r) {
+            return l <=> r
+        }
+    }
+    return 0
+}
+
 plugins {
     id 'java'
     id 'eclipse'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.8'
-    id 'xyz.jpenilla.run-velocity' version '2.3.1'
-    id 'com.modrinth.minotaur' version '2.+'
 }
 
-group = 'io.freddi'
-
-// Helper function to execute git commands safely
-def execGitCommand(String command) {
+// Gradle helper to obtain the newest version of a PaperMC project with fallbacks
+String fetchLatestProjectVersion(String projectId) {
     try {
-        return command.execute().text.trim()
-    } catch (Exception e) {
-        return null // Return null if the git command fails
+        def data = fetchJson("https://api.papermc.io/v2/projects/${projectId}")
+        def versions = data?.versions
+        if (!(versions instanceof List) || versions.isEmpty()) {
+            throw new GradleException("No versions returned for project ${projectId}")
+        }
+        versions = versions.findAll { it instanceof String }
+        versions.sort { a, b -> compareVersions(a, b) }
+        return versions.last()
+    } catch (Exception exception) {
+        throw new GradleException("Failed to fetch latest version for ${projectId}", exception)
     }
 }
 
-// Define version tag from git tags
-def defineTag = {
-    def tagInfo = execGitCommand('git describe --tags')
-    if (!tagInfo) return 'unknown'
-    def match = tagInfo =~ /^(.+?)-\d+-g[0-9a-f]{7}$/
-    return match ? match.group(1) : tagInfo
+String resolveVelocityVersion() {
+    def configured = findProperty('velocityVersion')?.toString()
+    if (!configured || configured.equalsIgnoreCase('latest')) {
+        return fetchLatestProjectVersion('velocity')
+    }
+    return configured
 }
-def tag = defineTag()
 
-// Define commit hash from git
-def defineCommitHash = {
-    return execGitCommand('git rev-parse --short HEAD') ?: 'unknown'
+String resolvePaperVersion() {
+    def configured = findProperty('paperVersion')?.toString()
+    if (!configured || configured.equalsIgnoreCase('latest')) {
+        def latest = fetchLatestProjectVersion('paper')
+        return "${latest}-R0.1-SNAPSHOT"
+    }
+    if (configured ==~ /\d+\.\d+(\.\d+)?/) {
+        return "${configured}-R0.1-SNAPSHOT"
+    }
+    return configured
 }
-def commitHash = defineCommitHash()
 
-// Define version with tag and commit hash
-def defineVersion = {
-    return "${defineTag()}-${commitHash}"
+List<String> fetchPaperGameVersions(String minVersion) {
+    try {
+        def projectData = fetchJson('https://api.papermc.io/v2/projects/paper')
+        def versions = projectData?.versions ?: []
+        versions = versions.findAll { it instanceof String }
+        versions.sort { a, b -> compareVersions(a, b) }
+        versions = versions.findAll { compareVersions(it, minVersion) >= 0 }
+        def supported = []
+        String snapshotCandidate = null
+        versions.each { version ->
+            def versionData = fetchJson("https://api.papermc.io/v2/projects/paper/versions/${version}")
+            def builds = versionData?.builds ?: []
+            builds = builds.findAll { it instanceof Number || (it instanceof String && it.isInteger()) }
+            builds.sort { a, b -> (a as Integer) <=> (b as Integer) }
+            Integer latestReleaseBuild = null
+            Integer latestSnapshotBuild = null
+            for (int i = builds.size() - 1; i >= 0; i--) {
+                def buildNumber = builds.get(i) as Integer
+                def buildData = fetchJson("https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${buildNumber}")
+                String channel = (buildData?.channel ?: 'default').toString()
+                if (channel == 'default' && latestReleaseBuild == null) {
+                    latestReleaseBuild = buildNumber
+                } else if (channel != 'default' && latestSnapshotBuild == null) {
+                    latestSnapshotBuild = buildNumber
+                }
+                if (latestReleaseBuild != null && latestSnapshotBuild != null) {
+                    break
+                }
+            }
+            if (latestReleaseBuild != null) {
+                supported << version
+            }
+            if (snapshotCandidate == null && latestSnapshotBuild != null) {
+                snapshotCandidate = version
+            }
+        }
+        if (snapshotCandidate != null && !supported.contains(snapshotCandidate)) {
+            supported << snapshotCandidate
+        }
+        return supported.unique()
+    } catch (Exception exception) {
+        logger.warn('Failed to determine supported Paper versions, falling back to minimum version.', exception)
+        return [minVersion] as List<String>
+    }
 }
-version = defineVersion()
 
-// Function to extract changelog for the current version
-def getChangelog = {
-    def versionTag = project.version.split("-")[0]
-    def changelogFile = file('CHANGELOG.md')
-    def changelogContent = ''
-    def capture = false
-    changelogFile.eachLine { line ->
-        if (line.startsWith("## [${versionTag}]")) {
-            capture = true
-        } else if (line.startsWith("## [") && capture) {
-            capture = false
-        } else if (capture) {
-            changelogContent += line + '\n'
+String attemptSuffix(int attemptNumber) {
+    if (attemptNumber <= 1) {
+        return ''
+    }
+    int n = attemptNumber
+    StringBuilder builder = new StringBuilder()
+    while (n > 0) {
+        n--
+        builder.insert(0, (char) ('A' + (n % 26)))
+        n = (int) (n / 26)
+    }
+    return builder.toString()
+}
+
+String resolveTag() {
+    def provided = (project.findProperty('tag') ?: System.getenv('TAG') ?: System.getenv('GITHUB_REF_NAME'))
+    provided = provided ? provided.toString().trim() : ''
+    if (provided) {
+        return provided
+    }
+
+    def suffixOverride = (project.findProperty('tagSuffix') ?: System.getenv('TAG_SUFFIX'))
+    suffixOverride = suffixOverride ? suffixOverride.toString().trim().toUpperCase() : ''
+    String baseDate = new Date().format('yyyy-MM-dd')
+    if (suffixOverride) {
+        return baseDate + suffixOverride
+    }
+
+    def attemptSource = (project.findProperty('buildAttempt') ?: System.getenv('BUILD_ATTEMPT') ?: System.getenv('GITHUB_RUN_ATTEMPT'))
+    int attemptNumber = (attemptSource?.toString()?.isInteger()) ? attemptSource.toString().toInteger() : 1
+
+    return baseDate + attemptSuffix(attemptNumber)
+}
+
+def resolvedTag = resolveTag()
+def resolvedVersionType = (project.findProperty('version_type') ?: System.getenv('VERSION_TYPE') ?: 'release').toString()
+def resolvedDebug = (project.findProperty('debug') ?: System.getenv('DEBUG') ?: 'false').toString()
+def resolvedVelocityVersion = resolveVelocityVersion()
+def resolvedPaperVersion = resolvePaperVersion()
+def minPaperVersion = (project.findProperty('minPaperVersion') ?: '1.16').toString()
+def supportedPaperGameVersions = fetchPaperGameVersions(minPaperVersion)
+
+description = 'Hub plugin for Velocity and Paper'
+version = resolvedTag
+
+ext {
+    tag = resolvedTag
+    version = resolvedTag
+    versionType = resolvedVersionType
+    debug = resolvedDebug
+    velocityVersion = resolvedVelocityVersion
+    paperVersion = resolvedPaperVersion
+    paperGameVersions = supportedPaperGameVersions
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'eclipse'
+
+    group = 'net.uebliche'
+    version = rootProject.version
+
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        maven {
+            name = "papermc-repo"
+            url = "https://repo.papermc.io/repository/maven-public/"
+        }
+        maven {
+            name = "sonatype"
+            url = "https://oss.sonatype.org/content/groups/public/"
         }
     }
-    return changelogContent
-}
 
-// Repositories
-repositories {
-    mavenCentral()
-    maven {
-        name = "papermc-repo"
-        url = "https://repo.papermc.io/repository/maven-public/"
+    ext {
+        tag = rootProject.tag
+        version = rootProject.version
+        versionType = rootProject.versionType
+        debug = rootProject.debug
+        velocityVersion = rootProject.velocityVersion
+        paperVersion = rootProject.paperVersion
+        paperGameVersions = rootProject.paperGameVersions
     }
-    maven {
-        name = "sonatype"
-        url = "https://oss.sonatype.org/content/groups/public/"
+
+    def targetJavaVersion = 21
+    java {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
-    gradlePluginPortal()
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release.set(targetJavaVersion)
+    }
 }
 
-// Dependencies
-dependencies {
-    compileOnly("com.velocitypowered:velocity-api:3.3.0-SNAPSHOT")
-    annotationProcessor("com.velocitypowered:velocity-api:" + project.velocityVersion)
-}
-
-// Java configuration
-def targetJavaVersion = 21
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-    options.release.set(targetJavaVersion)
-}
-
-// Velocity run configuration
-tasks.runVelocity {
-    velocityVersion(project.velocityVersion)
-}
-
-// Modrinth configuration
-modrinth {
-    token = System.getenv("MODRINTH_API_TOKEN")
-    projectId = "HrTclB8n"
-    version = project.version
-    changelog = getChangelog()
-    versionType = "release"
-    uploadFile = jar
-    gameVersions = mcVersions.split(',').collect { it.trim() }
-    loaders = List.of("velocity")
-    syncBodyFrom = file("README.md").text
-}
-
-def templateSource = file('src/main/templates')
-def templateDest = layout.buildDirectory.dir('generated/sources/templates').get().asFile
-
-def generateTemplates = tasks.register('generateTemplates', Copy) { task ->
-    def props = [
-            'version': project.version,
-            'commit' : commitHash,
-            'tag'    : tag,
-            'name'   : project.name,
-            'id'     : project.name.toLowerCase(),
-            'group'  : project.group,
-            'author' : "Freddi"
-    ]
-
-    task.inputs.properties props
-
-    task.from templateSource
-    task.into templateDest
-    task.expand props
-}
-
-tasks.compileJava.dependsOn(generateTemplates)
-
-sourceSets.main.java.srcDir(generateTemplates.map { it.outputs })
-
-project.idea.project.settings.taskTriggers.afterSync(generateTemplates)
-project.eclipse.synchronizationTasks(generateTemplates)

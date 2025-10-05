@@ -59,11 +59,11 @@ public class Hub {
 
     @Subscribe
     public void onPlayerChooseInitialServer(PlayerChooseInitialServerEvent event) {
-        logger.debug("PlayerChooseInitialServerEvent triggered for {} (initial={})", event.getPlayer().getUsername(), event.getInitialServer().map(s -> s.getServerInfo().getName()).orElse("<none>"));
+        MessageUtils messageUtils = Utils.util(MessageUtils.class);
+        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>PlayerChooseInitialServerEvent triggered (initial=" + event.getInitialServer().map(s -> s.getServerInfo().getName()).orElse("<none>") + ")</gray>");
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
         if (configUtils.config().autoSelect.onJoin) {
             var lobbyUtils = Utils.util(LobbyUtils.class);
-            var messageUtils = Utils.util(MessageUtils.class);
             var selection = lobbyUtils.findBest(event.getPlayer());
             if (selection.isPresent()) {
                 event.setInitialServer(selection.get().server());
@@ -82,9 +82,9 @@ public class Hub {
 
     @Subscribe
     public void onKickedFromServer(KickedFromServerEvent event) {
-        logger.debug("KickedFromServerEvent triggered for {} from {} (result={})", event.getPlayer().getUsername(), event.getServer().getServerInfo().getName(), event.getResult());
+        MessageUtils messageUtils = Utils.util(MessageUtils.class);
+        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>KickedFromServerEvent triggered from " + event.getServer().getServerInfo().getName() + " (result=" + event.getResult() + ")</gray>");
         if (Utils.util(ConfigUtils.class).config().autoSelect.onServerKick) {
-            var messageUtils = Utils.util(MessageUtils.class);
             var configUtils = Utils.util(ConfigUtils.class);
             Utils.util(LobbyUtils.class).findBest(event.getPlayer()).ifPresentOrElse(pingResult -> {
                 messageUtils.sendDebugMessage(event.getPlayer(), "🔁 Redirecting player after kick.");

@@ -121,3 +121,4 @@ velocity/run/
 /docs/.vitepress/cache
 paper/run/**
 .vscode/
+gradlew-docker-1

@@ -1,0 +1,111 @@
+name: hub-dev
+
+services:
+  # Velocity proxy running your plugin via Gradle
+  velocity:
+    image: eclipse-temurin:25-jdk
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      # Use a Docker-specific Velocity config pointing to the limbo services
+      - ./docker/velocity.docker.toml:/workspace/velocity/run/velocity.toml
+      - ./docker/velocity.forwarding.secret:/workspace/velocity/run/forwarding.secret
+      - ./docker/plugins.hub:/workspace/velocity/run/plugins/hub
+    environment:
+      GRADLE_USER_HOME: /gradle-cache/velocity
+      GRADLE_PROJECT_CACHE_DIR: /gradle-cache/velocity-project
+      VELOCITY_VERSION: ${VELOCITY_VERSION:-latest}
+      HUB_DEBUG: "true"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        tmp=/workspace/gradlew-docker-$$$$
+        trap 'rm -f "$$tmp"' EXIT
+        tr -d '\r' < gradlew > "$$tmp"
+        chmod +x "$$tmp"
+        mkdir -p /gradle-cache/velocity
+        "$$tmp" --gradle-user-home /gradle-cache/velocity --project-cache-dir /gradle-cache/velocity-project :velocity:runVelocity --no-daemon
+    depends_on:
+      - paper
+      - lobby
+      - premiumlobby
+      - teamlobby
+    ports:
+      - "25577:25577"
+    networks:
+      - gateway
+      - hub
+
+  # Paper server running via Gradle (run-paper plugin)
+  paper:
+    image: eclipse-temurin:25-jdk
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      GRADLE_USER_HOME: /gradle-cache/paper
+      GRADLE_PROJECT_CACHE_DIR: /gradle-cache/paper-project
+      PAPER_VERSION: ${PAPER_VERSION:-latest}
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        tmp=/workspace/gradlew-docker-$$$$
+        trap 'rm -f "$$tmp"' EXIT
+        tr -d '\r' < gradlew > "$$tmp"
+        chmod +x "$$tmp"
+        mkdir -p /gradle-cache/paper
+        "$$tmp" --gradle-user-home /gradle-cache/paper --project-cache-dir /gradle-cache/paper-project :paper:runServer --no-daemon
+    networks:
+      - hub
+
+  # Lightweight backend placeholders ("Limbo" servers)
+  lobby: &limbo
+    image: itzg/minecraft-server
+    volumes:
+      - ./docker/lobby.server.properties:/data/server.properties
+    environment:
+      EULA: "TRUE"
+      TYPE: "LIMBO"
+      ONLINE_MODE: "FALSE" # backends run in offline-mode when behind a proxy
+      # Keep it light; adjust as needed for your machine
+      MEMORY: 512M
+      # Give each a distinct MOTD so you can tell them apart
+      MOTD: "Limbo 1"
+    networks:
+      - hub
+
+  premiumlobby:
+    <<: *limbo
+    volumes:
+      - ./docker/premiumlobby.server.properties:/data/server.properties
+    environment:
+      EULA: "TRUE"
+      TYPE: "LIMBO"
+      ONLINE_MODE: "FALSE"
+      MEMORY: 512M
+      MOTD: "Limbo 2"
+    networks:
+      - hub
+
+  teamlobby:
+    <<: *limbo
+    volumes:
+      - ./docker/teamlobby.server.properties:/data/server.properties
+    environment:
+      EULA: "TRUE"
+      TYPE: "LIMBO"
+      ONLINE_MODE: "FALSE"
+      MEMORY: 512M
+      MOTD: "Limbo 3"
+    networks:
+      - hub
+
+networks:
+  hub:
+    driver: bridge
+  gateway:
+    external: true

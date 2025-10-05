@@ -1,13 +1,20 @@
 import java.net.URL
+import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.InputStreamReader
 import groovy.json.JsonSlurper
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.8'
+}
 
 def fetchJson(String url) {
     def connection = new URL(url).openConnection()
-    connection.setRequestProperty('User-Agent', 'Hub-Build-Script')
+    connection.setRequestProperty('User-Agent', 'uebliche')
     connection.connectTimeout = 15000
     connection.readTimeout = 15000
     connection.doInput = true
@@ -32,22 +39,20 @@ int compareVersions(String a, String b) {
     return 0
 }
 
-plugins {
-    id 'java'
-    id 'eclipse'
-    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.8'
-}
-
-// Gradle helper to obtain the newest version of a PaperMC project with fallbacks
 String fetchLatestProjectVersion(String projectId) {
     try {
-        def data = fetchJson("https://api.papermc.io/v2/projects/${projectId}")
-        def versions = data?.versions
-        if (!(versions instanceof List) || versions.isEmpty()) {
+        def data = fetchJson("https://fill.papermc.io/v3/projects/${projectId}")
+        def rawVersions = data?.versions
+        List<String> versions = []
+        if (rawVersions instanceof Map) {
+            versions = flattenFillVersions(rawVersions as Map)
+        } else if (rawVersions instanceof List) {
+            versions = rawVersions.findAll { it instanceof String }
+            versions.sort { a, b -> compareVersions(a, b) }
+        }
+        if (versions.isEmpty()) {
             throw new GradleException("No versions returned for project ${projectId}")
         }
-        versions = versions.findAll { it instanceof String }
-        versions.sort { a, b -> compareVersions(a, b) }
         return versions.last()
     } catch (Exception exception) {
         throw new GradleException("Failed to fetch latest version for ${projectId}", exception)
@@ -55,7 +60,7 @@ String fetchLatestProjectVersion(String projectId) {
 }
 
 String resolveVelocityVersion() {
-    def configured = findProperty('velocityVersion')?.toString()
+    def configured = (findProperty('velocityVersion') ?: System.getenv('VELOCITY_VERSION'))?.toString()
     if (!configured || configured.equalsIgnoreCase('latest')) {
         return fetchLatestProjectVersion('velocity')
     }
@@ -63,7 +68,7 @@ String resolveVelocityVersion() {
 }
 
 String resolvePaperVersion() {
-    def configured = findProperty('paperVersion')?.toString()
+    def configured = (findProperty('paperVersion') ?: System.getenv('PAPER_VERSION'))?.toString()
     if (!configured || configured.equalsIgnoreCase('latest')) {
         def latest = fetchLatestProjectVersion('paper')
         return "${latest}-R0.1-SNAPSHOT"
@@ -76,38 +81,42 @@ String resolvePaperVersion() {
 
 List<String> fetchPaperGameVersions(String minVersion) {
     try {
-        def projectData = fetchJson('https://api.papermc.io/v2/projects/paper')
-        def versions = projectData?.versions ?: []
-        versions = versions.findAll { it instanceof String }
-        versions.sort { a, b -> compareVersions(a, b) }
-        versions = versions.findAll { compareVersions(it, minVersion) >= 0 }
+        def projectData = fetchJson("https://fill.papermc.io/v3/projects/paper")
+        Map versionsMap = (projectData?.versions instanceof Map) ? projectData.versions as Map : [:]
+        if (versionsMap.isEmpty()) {
+            throw new GradleException('No versions returned for Paper project')
+        }
+        List<String> ordered = flattenFillVersions(versionsMap)
+        ordered = ordered.findAll { compareVersions(it, minVersion) >= 0 }
+        if (ordered.isEmpty()) {
+            throw new GradleException('No supported versions returned for Paper project')
+        }
         def supported = []
         String snapshotCandidate = null
-        versions.each { version ->
-            def versionData = fetchJson("https://api.papermc.io/v2/projects/paper/versions/${version}")
-            def builds = versionData?.builds ?: []
-            builds = builds.findAll { it instanceof Number || (it instanceof String && it.isInteger()) }
-            builds.sort { a, b -> (a as Integer) <=> (b as Integer) }
-            Integer latestReleaseBuild = null
-            Integer latestSnapshotBuild = null
-            for (int i = builds.size() - 1; i >= 0; i--) {
-                def buildNumber = builds.get(i) as Integer
-                def buildData = fetchJson("https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${buildNumber}")
-                String channel = (buildData?.channel ?: 'default').toString()
-                if (channel == 'default' && latestReleaseBuild == null) {
-                    latestReleaseBuild = buildNumber
-                } else if (channel != 'default' && latestSnapshotBuild == null) {
-                    latestSnapshotBuild = buildNumber
+        ordered.each { version ->
+            Map latestBuild = null
+            try {
+                latestBuild = fetchFillLatestBuild('paper', version, null)
+            } catch (Exception buildException) {
+                logger.debug("Failed to inspect latest build for Paper ${version}", buildException)
+            }
+            String channel = (latestBuild?.channel ?: '').toString().toUpperCase(Locale.ROOT)
+            boolean stable = latestBuild && ['DEFAULT', 'STABLE', 'RECOMMENDED', 'RELEASE'].contains(channel)
+            if (!stable) {
+                Map stableBuild = null
+                try {
+                    stableBuild = fetchFillLatestBuild('paper', version, 'STABLE')
+                } catch (Exception ignored) {
+                    stableBuild = null
                 }
-                if (latestReleaseBuild != null && latestSnapshotBuild != null) {
-                    break
+                if (stableBuild) {
+                    stable = true
+                } else if (snapshotCandidate == null) {
+                    snapshotCandidate = version
                 }
             }
-            if (latestReleaseBuild != null) {
+            if (stable) {
                 supported << version
-            }
-            if (snapshotCandidate == null && latestSnapshotBuild != null) {
-                snapshotCandidate = version
             }
         }
         if (snapshotCandidate != null && !supported.contains(snapshotCandidate)) {
@@ -120,19 +129,52 @@ List<String> fetchPaperGameVersions(String minVersion) {
     }
 }
 
+List<String> flattenFillVersions(Map versions) {
+    def ordered = []
+    if (versions instanceof Map) {
+        versions.each { _, value ->
+            if (value instanceof List) {
+                value.findAll { it instanceof String }.each { ordered << it.toString() }
+            }
+        }
+    }
+    ordered.sort { a, b -> compareVersions(a, b) }
+    return ordered
+}
+
+Map fetchFillLatestBuild(String projectId, String version, String desiredChannel = null) {
+    String query = desiredChannel ? "?channel=${desiredChannel}" : ''
+    try {
+        return fetchJson("https://fill.papermc.io/v3/projects/${projectId}/versions/${version}/builds/latest${query}") as Map
+    } catch (FileNotFoundException ignored) {
+        return null
+    }
+}
+
 String attemptSuffix(int attemptNumber) {
     if (attemptNumber <= 1) {
         return ''
     }
-    int n = attemptNumber
+
+    String suffixChars = 'bcdefghijklmnopqrstuvwxyz'
+    int base = suffixChars.length()
+    int value = attemptNumber - 2
     StringBuilder builder = new StringBuilder()
-    while (n > 0) {
-        n--
-        builder.insert(0, (char) ('A' + (n % 26)))
-        n = (int) (n / 26)
+
+    while (true) {
+        int digit = value % base
+        builder.insert(0, suffixChars.charAt(digit))
+        value = (value / base) - 1
+        if (value < 0) {
+            break
+        }
     }
+
     return builder.toString()
 }
+
+
+
 
 String resolveTag() {
     def provided = (project.findProperty('tag') ?: System.getenv('TAG') ?: System.getenv('GITHUB_REF_NAME'))
@@ -142,7 +184,7 @@ String resolveTag() {
     }
 
     def suffixOverride = (project.findProperty('tagSuffix') ?: System.getenv('TAG_SUFFIX'))
-    suffixOverride = suffixOverride ? suffixOverride.toString().trim().toUpperCase() : ''
+    suffixOverride = suffixOverride ? suffixOverride.toString().trim().toLowerCase(Locale.ROOT) : ''
     String baseDate = new Date().format('yyyy-MM-dd')
     if (suffixOverride) {
         return baseDate + suffixOverride
@@ -186,12 +228,8 @@ subprojects {
         mavenCentral()
         gradlePluginPortal()
         maven {
-            name = "papermc-repo"
+            name = "papermc"
             url = "https://repo.papermc.io/repository/maven-public/"
-        }
-        maven {
-            name = "sonatype"
-            url = "https://oss.sonatype.org/content/groups/public/"
         }
     }
 
@@ -205,7 +243,7 @@ subprojects {
         paperGameVersions = rootProject.paperGameVersions
     }
 
-    def targetJavaVersion = 21
+    def targetJavaVersion = 25
     java {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
@@ -215,4 +253,12 @@ subprojects {
         options.release.set(targetJavaVersion)
     }
 }
+
+
+
+
+
+
+
+
 

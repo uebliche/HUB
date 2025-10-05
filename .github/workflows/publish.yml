@@ -132,7 +132,6 @@ jobs:
       - name: Publish to Modrinth
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-          MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}
           CHANGELOG: ${{ needs.release.outputs.notes }}
         run: ./gradlew :velocity:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
 
@@ -155,5 +154,4 @@ jobs:
       - name: Sync Modrinth description
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-          MODRINTH_API_TOKEN: ${{ secrets.MODRINTH_API_TOKEN }}
         run: ./gradlew :velocity:modrinthSyncBody -Pdebug=${{ github.event.inputs.debug }}

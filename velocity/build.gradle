@@ -16,6 +16,7 @@ dependencies {
 
 // Velocity run configuration
 tasks.runVelocity {
+    println(project.velocityVersion)
     velocityVersion(project.velocityVersion)
 }
 tasks.jar {

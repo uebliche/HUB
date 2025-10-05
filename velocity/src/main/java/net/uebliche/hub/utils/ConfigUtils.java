@@ -17,6 +17,8 @@ import java.util.List;
 
 public class ConfigUtils extends Utils<ConfigUtils> {
 
+    private static final String DEBUG_ENV_VARIABLE = "HUB_DEBUG";
+
     private Config config;
     private YamlConfigurationLoader configLoader;
     private CommentedConfigurationNode node;
@@ -36,6 +38,7 @@ public class ConfigUtils extends Utils<ConfigUtils> {
     public void reload() throws ConfigurateException {
         node = configLoader.load();
         config = node.get(Config.class);
+        applyEnvironmentOverrides();
         processConfig();
         node.set(Config.class, config);
         configLoader.save(node);
@@ -68,6 +71,30 @@ public class ConfigUtils extends Utils<ConfigUtils> {
 
     private void processConfig() {
         config.lobbies = config.lobbies.stream().sorted(Comparator.comparingInt(o -> -o.priority)).toList();
+    }
+
+    private void applyEnvironmentOverrides() {
+        String debugEnv = System.getenv(DEBUG_ENV_VARIABLE);
+        if (debugEnv == null) {
+            return;
+        }
+
+        Boolean debugOverride = parseBoolean(debugEnv);
+        if (debugOverride == null) {
+            logger.warn("Ignoring {} env value '{}'; expected boolean", DEBUG_ENV_VARIABLE, debugEnv);
+            return;
+        }
+
+        config.debug.enabled = debugOverride;
+    }
+
+    private Boolean parseBoolean(String raw) {
+        String value = raw.trim().toLowerCase();
+        return switch (value) {
+            case "1", "true", "t", "yes", "y", "on" -> true;
+            case "0", "false", "f", "no", "n", "off" -> false;
+            default -> null;
+        };
     }
 
     public Config config() {

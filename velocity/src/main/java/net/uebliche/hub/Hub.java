@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
+import com.velocitypowered.api.event.player.KickedFromServerEvent.ServerKickResult;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -58,6 +59,7 @@ public class Hub {
 
     @Subscribe
     public void onPlayerChooseInitialServer(PlayerChooseInitialServerEvent event) {
+        logger.debug("PlayerChooseInitialServerEvent triggered for {} (initial={})", event.getPlayer().getUsername(), event.getInitialServer().map(s -> s.getServerInfo().getName()).orElse("<none>"));
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
         if (configUtils.config().autoSelect.onJoin) {
             var lobbyUtils = Utils.util(LobbyUtils.class);
@@ -80,12 +82,13 @@ public class Hub {
 
     @Subscribe
     public void onKickedFromServer(KickedFromServerEvent event) {
+        logger.debug("KickedFromServerEvent triggered for {} from {} (result={})", event.getPlayer().getUsername(), event.getServer().getServerInfo().getName(), event.getResult());
         if (Utils.util(ConfigUtils.class).config().autoSelect.onServerKick) {
             var messageUtils = Utils.util(MessageUtils.class);
             var configUtils = Utils.util(ConfigUtils.class);
             Utils.util(LobbyUtils.class).findBest(event.getPlayer()).ifPresentOrElse(pingResult -> {
                 messageUtils.sendDebugMessage(event.getPlayer(), "🔁 Redirecting player after kick.");
-                pingResult.connect();
+                event.setResult(KickedFromServerEvent.RedirectPlayer.create(pingResult.server()));
             }, () -> {
                 messageUtils.sendDebugMessage(event.getPlayer(), "<red>❌ No fallback lobby available after kick.");
                 event.setResult(KickedFromServerEvent.DisconnectPlayer.create(messageUtils.toMessage(configUtils.config().messages.serverDisconnectedMessage, event.getServer(), event.getPlayer())));
@@ -98,3 +101,4 @@ public class Hub {
         return server;
     }
 }
+

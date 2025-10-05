@@ -1,7 +1,6 @@
 package net.uebliche.hub.utils;
 
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.api.scheduler.ScheduledTask;
@@ -210,7 +209,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
             messageUtils.broadcastDebugMessage("<gray>📡 Pinging " + server.getServerInfo().getName() + " (timeout " + timeout.toMillis() + "ms)...</gray>");
         }
         try {
-            var ping = server.ping(PingOptions.builder().timeout(timeout).build()).join();
+            var ping = server.ping().orTimeout(timeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS).join();
             if (ping == null) {
                 if (messageUtils != null) {
                     messageUtils.broadcastDebugMessage("<red>📡 Ping to " + server.getServerInfo().getName() + " returned no data.</red>");
@@ -256,3 +255,4 @@ public class LobbyUtils extends Utils<LobbyUtils> {
     public record CachedResult(PingResult result, long ageMillis) {
     }
 }
+

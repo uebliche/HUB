@@ -3,7 +3,7 @@ name: hub-dev
 services:
   # Velocity proxy running your plugin via Gradle
   velocity:
-    image: eclipse-temurin:25-jdk
+    image: eclipse-temurin:21-jdk
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -26,6 +26,7 @@ services:
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
         mkdir -p /gradle-cache/velocity
+        rm -rf /workspace/shared/build /workspace/velocity/build
         "$$tmp" --gradle-user-home /gradle-cache/velocity --project-cache-dir /gradle-cache/velocity-project :velocity:runVelocity --no-daemon
     depends_on:
       - paper
@@ -35,12 +36,14 @@ services:
     ports:
       - "25577:25577"
     networks:
-      - gateway
-      - hub
+      gateway:
+        aliases:
+          - hub-dev-velocity
+      hub:
 
   # Paper server running via Gradle (run-paper plugin)
   paper:
-    image: eclipse-temurin:25-jdk
+    image: eclipse-temurin:21-jdk
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -58,6 +61,7 @@ services:
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
         mkdir -p /gradle-cache/paper
+        rm -rf /workspace/shared/build /workspace/paper/build
         "$$tmp" --gradle-user-home /gradle-cache/paper --project-cache-dir /gradle-cache/paper-project :paper:runServer --no-daemon
     networks:
       - hub

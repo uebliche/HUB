@@ -4,13 +4,14 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.KickedFromServerEvent;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
-import com.velocitypowered.api.event.player.KickedFromServerEvent.ServerKickResult;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
+
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.uebliche.hub.utils.*;
 import net.uebliche.hub.utils.UpdateChecker;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class Hub {
         new LobbyUtils(this);
         try {
             Utils.util(ConfigUtils.class).reload();
-            new net.uebliche.hub.utils.UpdateChecker(this);
+            new UpdateChecker(this);
         } catch (ConfigurateException e) {
             logger.error("Failed to load config!", e);
         }
@@ -60,7 +61,8 @@ public class Hub {
     @Subscribe
     public void onPlayerChooseInitialServer(PlayerChooseInitialServerEvent event) {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
-        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>PlayerChooseInitialServerEvent triggered (initial=" + event.getInitialServer().map(s -> s.getServerInfo().getName()).orElse("<none>") + ")</gray>");
+        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>PlayerChooseInitialServerEvent triggered (initial="
+                + event.getInitialServer().map(s -> s.getServerInfo().getName()).orElse("<none>") + ")</gray>");
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
         if (configUtils.config().autoSelect.onJoin) {
             var lobbyUtils = Utils.util(LobbyUtils.class);
@@ -70,28 +72,52 @@ public class Hub {
             } else {
                 messageUtils.sendDebugMessage(event.getPlayer(), "<red>❌ No lobby could be selected during login.");
                 if (event.getInitialServer().isEmpty()) {
-                    event.getPlayer().disconnect(messageUtils.toMessage(configUtils.config().systemMessages.noLobbyFoundMessage, event.getPlayer()));
+                    event.getPlayer().disconnect(messageUtils
+                            .toMessage(configUtils.config().systemMessages.noLobbyFoundMessage, event.getPlayer()));
                 }
             }
         }
         UpdateChecker updateChecker = Utils.util(UpdateChecker.class);
-        if (configUtils.config().updateChecker.enabled && updateChecker.updateAvailable && (configUtils.config().updateChecker.notification.isBlank() || event.getPlayer().hasPermission(configUtils.config().updateChecker.notification))) {
-            event.getPlayer().sendMessage(miniMessage().deserialize(configUtils.config().updateChecker.notification, Placeholder.parsed("current", Props.VERSION), Placeholder.parsed("latest", updateChecker.latest)));
+        if (configUtils.config().updateChecker.enabled && updateChecker.updateAvailable
+                && (configUtils.config().updateChecker.notification.isBlank()
+                        || event.getPlayer().hasPermission(configUtils.config().updateChecker.notification))) {
+            event.getPlayer().sendMessage(miniMessage().deserialize(configUtils.config().updateChecker.notification,
+                    Placeholder.parsed("current", Props.VERSION), Placeholder.parsed("latest", updateChecker.latest)));
         }
     }
 
     @Subscribe
     public void onKickedFromServer(KickedFromServerEvent event) {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
-        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>KickedFromServerEvent triggered from " + event.getServer().getServerInfo().getName() + " (result=" + event.getResult() + ")</gray>");
-        if (Utils.util(ConfigUtils.class).config().autoSelect.onServerKick) {
-            var configUtils = Utils.util(ConfigUtils.class);
+        var configUtils = Utils.util(ConfigUtils.class);
+        var config = configUtils.config();
+        var kickMessageConfig = config.kickMessage;
+        if (kickMessageConfig != null && kickMessageConfig.enabled) {
+            event.getServerKickReason().ifPresent(message -> {
+                String plainReason = PlainTextComponentSerializer.plainText().serialize(message).trim();
+                if (!plainReason.isEmpty()) {
+                    var decoratedMessage = message;
+                    if (kickMessageConfig.prefix != null && !kickMessageConfig.prefix.isBlank()) {
+                        decoratedMessage = miniMessage().deserialize(kickMessageConfig.prefix).append(decoratedMessage);
+                    }
+                    if (kickMessageConfig.suffix != null && !kickMessageConfig.suffix.isBlank()) {
+                        decoratedMessage = decoratedMessage.append(miniMessage().deserialize(kickMessageConfig.suffix));
+                    }
+                    event.getPlayer().sendMessage(decoratedMessage);
+                }
+            });
+        }
+        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>KickedFromServerEvent triggered from "
+                + event.getServer().getServerInfo().getName() + " (result=" + event.getResult() + ")</gray>");
+        if (config.autoSelect.onServerKick) {
             Utils.util(LobbyUtils.class).findBest(event.getPlayer()).ifPresentOrElse(pingResult -> {
                 messageUtils.sendDebugMessage(event.getPlayer(), "🔁 Redirecting player after kick.");
                 event.setResult(KickedFromServerEvent.RedirectPlayer.create(pingResult.server()));
             }, () -> {
                 messageUtils.sendDebugMessage(event.getPlayer(), "<red>❌ No fallback lobby available after kick.");
-                event.setResult(KickedFromServerEvent.DisconnectPlayer.create(messageUtils.toMessage(configUtils.config().messages.serverDisconnectedMessage, event.getServer(), event.getPlayer())));
+                event.setResult(KickedFromServerEvent.DisconnectPlayer
+                        .create(messageUtils.toMessage(config.messages.serverDisconnectedMessage,
+                                event.getServer(), event.getPlayer())));
             });
         }
 
@@ -101,4 +127,3 @@ public class Hub {
         return server;
     }
 }
-

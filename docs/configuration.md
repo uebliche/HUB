@@ -28,6 +28,18 @@ You can override any of the following keys per-lobby under `lobbies[].overwrite-
 - `server-disconnected-message`
 - `connection-cancelled-message`
 
+## Kick Message Forwarding
+
+```yaml
+kick-message:
+  enabled: true
+  prefix: <red>
+  suffix: ''
+```
+
+- `enabled`: Forwards the original kick reason to the player (if the backend included one).
+- `prefix` / `suffix`: MiniMessage snippets prepended/appended to the forwarded reason. Leave blank to keep the raw reason untouched.
+
 ## Command Settings
 
 ```yaml
@@ -96,7 +108,7 @@ The plugin exposes the following placeholders:
 | Server | `server-port` | ✗ | Server port. |
 | Server | `server-player-count` | ✓ | Number of tracked players on the registered server. |
 | Server | `server-player-%i-username` | ✗ | Username of each player currently connected (indexed). |
-| Server | `server-player-%1-uuid` | ✗ | UUID of each player currently connected (indexed). |
+| Server | `server-player-%i-uuid` | ✗ | UUID of each player currently connected (indexed). |
 | Lobby | `lobby` | ✓ | Lobby name from the configuration. |
 | Lobby | `lobby-filter` | ✗ | Regex used to match server names. |
 | Lobby | `lobby-require-permission` | ✗ | Whether the lobby requires a permission node. |

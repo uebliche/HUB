@@ -13,6 +13,10 @@ system-messages:
   players-only-command-message: <#ff9c59>This Command is only available to Players.
   no-lobby-found-message: <#ff9c59>I'm sorry! i was unable to find a Lobby Server
     for you.
+kick-message:
+  enabled: true
+  prefix: <red>
+  suffix: ''
 base-hub-command: hub
 aliases:
 - lobby
@@ -80,7 +84,7 @@ placeholder:
     placeholder: '%i'
   server-player-per-player-uuid:
     example: f9de374c-cb78-4c5c-aa2f-4a53ae981f9d
-    key: server-player-%1-uuid
+    key: server-player-%i-uuid
     enabled: false
     placeholder: '%i'
   lobby:

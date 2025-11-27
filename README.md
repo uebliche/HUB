@@ -110,6 +110,10 @@ messages:
 system-messages:
   players-only-command-message: <#ff9c59>This Command is only available to Players.
   no-lobby-found-message: <#ff9c59>I'm sorry! i was unable to find a Lobby Server for you.
+kick-message:
+  enabled: true
+  prefix: <red>
+  suffix: ''
 base-hub-command: hub
 aliases:
   - lobby
@@ -177,7 +181,7 @@ placeholder:
     placeholder: '%i'
   server-player-per-player-uuid:
     example: f9de374c-cb78-4c5c-aa2f-4a53ae981f9d
-    key: server-player-%1-uuid
+    key: server-player-%i-uuid
     enabled: false
     placeholder: '%i'
   lobby:
@@ -247,7 +251,7 @@ update-checker:
 | Server | `server-port` | `25565` | No | Port of the registered server. |
 | Server | `server-player-count` | `0` | Yes | Amount of players currently connected to that server. |
 | Server | `server-player-%i-username` | `apitoken` | No | Username of indexed players on the target server (virtual placeholders per index). |
-| Server | `server-player-%1-uuid` | `f9de374c-cb78-4c5c-aa2f-4a53ae981f9d` | No | UUID of indexed players on the target server. |
+| Server | `server-player-%i-uuid` | `f9de374c-cb78-4c5c-aa2f-4a53ae981f9d` | No | UUID of indexed players on the target server. |
 | Lobby | `lobby` | `lobby` | Yes | Lobby name from the config. |
 | Lobby | `lobby-filter` | `(?i)^lobby.*` | No | Regex filter configured for the lobby. |
 | Lobby | `lobby-require-permission` | `true` | No | Indicates whether a permission is required. |

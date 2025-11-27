@@ -23,6 +23,7 @@ public class Config {
     );
 
     public SystemMessages systemMessages = new SystemMessages();
+    public KickMessage kickMessage = new KickMessage();
 
 
     public String baseHubCommand = "hub";
@@ -114,6 +115,13 @@ public class Config {
     }
 
     @ConfigSerializable
+    public static class KickMessage {
+        public boolean enabled = true;
+        public String prefix = "<red>";
+        public String suffix = "";
+    }
+
+    @ConfigSerializable
     public static class Placeholder {
         public Holder server = new Holder("server", "lobby-1");
         public Holder serverHost = new Holder("server-host", "127.0.0.1").setEnabled(false);
@@ -121,7 +129,7 @@ public class Config {
 
         public Holder serverPlayerCount = new Holder("server-player-count", "0");
         public Holder serverPlayerPerPlayerUsername = new Holder("server-player-%i-username", "apitoken").setEnabled(false).setPlaceholder("%i");
-        public Holder serverPlayerPerPlayerUuid = new Holder("server-player-%1-uuid", "f9de374c-cb78-4c5c-aa2f-4a53ae981f9d").setEnabled(false).setPlaceholder("%i");
+        public Holder serverPlayerPerPlayerUuid = new Holder("server-player-%i-uuid", "f9de374c-cb78-4c5c-aa2f-4a53ae981f9d").setEnabled(false).setPlaceholder("%i");
 
         public Holder lobby = new Holder("lobby", "lobby");
         public Holder lobbyFilter = new Holder("lobby-filter", "(?i)^lobby.*").setEnabled(false);

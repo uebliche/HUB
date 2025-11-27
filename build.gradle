@@ -197,8 +197,13 @@ String resolveTag() {
 }
 
 def resolvedTag = resolveTag()
-def resolvedVersionType = (project.findProperty('version_type') ?: System.getenv('VERSION_TYPE') ?: 'release').toString()
-def resolvedDebug = (project.findProperty('debug') ?: System.getenv('DEBUG') ?: 'false').toString()
+def resolvedVersionTypeRaw = (project.findProperty('version_type') ?: System.getenv('VERSION_TYPE') ?: 'release').toString()
+def resolvedDebugRaw = (project.findProperty('debug') ?: System.getenv('DEBUG') ?: 'false').toString()
+boolean debugEnabled = ['1', 'true', 't', 'yes', 'y', 'on'].contains(resolvedDebugRaw.trim().toLowerCase(Locale.ROOT))
+def resolvedVersionType = debugEnabled && resolvedVersionTypeRaw.equalsIgnoreCase('release')
+        ? 'alpha'
+        : resolvedVersionTypeRaw
+def resolvedDebug = resolvedDebugRaw
 def resolvedVelocityVersion = resolveVelocityVersion()
 def resolvedPaperVersion = resolvePaperVersion()
 def minPaperVersion = (project.findProperty('minPaperVersion') ?: '1.16').toString()

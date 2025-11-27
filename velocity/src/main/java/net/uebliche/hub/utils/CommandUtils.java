@@ -21,7 +21,7 @@ public class CommandUtils extends Utils<CommandUtils> {
         });
         if (Utils.util(ConfigUtils.class).config() == null) {
             registerDebugCommand();
-            logger.info("Debug Command Registered! (/hub debug reload to reload the config)");
+            logger.debug("Debug command registered (/hub debug reload to reload the config)");
         }
         registerCommands();
     }
@@ -45,8 +45,7 @@ public class CommandUtils extends Utils<CommandUtils> {
     }
 
     private void registerDebugCommand() {
-        logger.warn("Debug Command got registered!");
-        System.out.println("DEBUG COMMAND REGISTERED!");
+        logger.debug("Debug command got registered");
         registerCommand(
                 hub.server().getCommandManager().metaBuilder("hub").plugin(hub).build(),
                 new BrigadierCommand(

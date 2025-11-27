@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.checkerframework.checker.units.qual.m;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,31 +53,51 @@ public class MessageUtils extends Utils<MessageUtils> {
                 continue;
             }
             if (object instanceof RegisteredServer registeredServer) {
-                if (placeholder.server.enabled() || placeholder.serverHost.enabled() || placeholder.serverPort.enabled() || placeholder.serverPlayerCount.enabled() || placeholder.serverPlayerPerPlayerUsername.enabled() || placeholder.serverPlayerPerPlayerUuid.enabled()) {
+                if (placeholder.server.enabled() || placeholder.serverHost.enabled() || placeholder.serverPort.enabled()
+                        || placeholder.serverPlayerCount.enabled()
+                        || placeholder.serverPlayerPerPlayerUsername.enabled()
+                        || placeholder.serverPlayerPerPlayerUuid.enabled()) {
                     ServerInfo serverInfo = registeredServer.getServerInfo();
                     if (placeholder.server.enabled()) {
                         placeholders.add(Placeholder.unparsed(placeholder.server.key(), serverInfo.getName()));
                     }
                     if (placeholder.serverHost.enabled()) {
-                        placeholders.add(Placeholder.unparsed(placeholder.serverHost.key(), serverInfo.getAddress().getHostString()));
+                        placeholders.add(Placeholder.unparsed(placeholder.serverHost.key(),
+                                serverInfo.getAddress().getHostString()));
                     }
                     if (placeholder.serverPort.enabled()) {
-                        placeholders.add(Placeholder.unparsed(placeholder.serverPort.key(), String.valueOf(serverInfo.getAddress().getPort())));
+                        placeholders.add(Placeholder.unparsed(placeholder.serverPort.key(),
+                                String.valueOf(serverInfo.getAddress().getPort())));
                     }
                     if (placeholder.serverPlayerCount.enabled()) {
                         int playerCount = registeredServer.getPlayersConnected().size();
-                        placeholders.add(Placeholder.unparsed(placeholder.serverPlayerCount.key(), String.valueOf(playerCount)));
-                        broadcastDebugMessage("<gray>👥 Server " + serverInfo.getName() + " currently tracks " + playerCount + " players.</gray>");
+                        placeholders.add(
+                                Placeholder.unparsed(placeholder.serverPlayerCount.key(), String.valueOf(playerCount)));
+                        broadcastDebugMessage("<gray>👥 Server " + serverInfo.getName() + " currently tracks "
+                                + playerCount + " players.</gray>");
                     }
-                    if (placeholder.serverPlayerPerPlayerUsername.enabled() || placeholder.serverPlayerPerPlayerUuid.enabled()) {
+                    if (placeholder.serverPlayerPerPlayerUsername.enabled()
+                            || placeholder.serverPlayerPerPlayerUuid.enabled()) {
                         AtomicInteger i = new AtomicInteger(0);
                         registeredServer.getPlayersConnected().forEach(player -> {
                             int id = i.getAndIncrement();
                             if (placeholder.serverPlayerPerPlayerUsername.enabled()) {
-                                placeholders.add(Placeholder.unparsed(placeholder.serverPlayerPerPlayerUsername.key().replaceFirst(placeholder.serverPlayerPerPlayerUsername.placeholder(), String.valueOf(id)), player.getUsername()));
+                                placeholders
+                                        .add(Placeholder
+                                                .unparsed(
+                                                        placeholder.serverPlayerPerPlayerUsername.key()
+                                                                .replaceFirst(placeholder.serverPlayerPerPlayerUsername
+                                                                        .placeholder(), String.valueOf(id)),
+                                                        player.getUsername()));
                             }
                             if (placeholder.serverPlayerPerPlayerUuid.enabled()) {
-                                placeholders.add(Placeholder.unparsed(placeholder.serverPlayerPerPlayerUuid.key().replaceFirst(placeholder.serverPlayerPerPlayerUuid.placeholder(), String.valueOf(id)), player.getUniqueId().toString()));
+                                placeholders
+                                        .add(Placeholder
+                                                .unparsed(
+                                                        placeholder.serverPlayerPerPlayerUuid.key()
+                                                                .replaceFirst(placeholder.serverPlayerPerPlayerUuid
+                                                                        .placeholder(), String.valueOf(id)),
+                                                        player.getUniqueId().toString()));
                             }
                         });
                     }
@@ -93,23 +114,42 @@ public class MessageUtils extends Utils<MessageUtils> {
                     placeholders.add(Placeholder.unparsed(placeholder.lobbyPermission.key(), lobby.permission));
                 }
                 if (placeholder.lobbyPriority.enabled()) {
-                    placeholders.add(Placeholder.unparsed(placeholder.lobbyPriority.key(), String.valueOf(lobby.priority)));
+                    placeholders
+                            .add(Placeholder.unparsed(placeholder.lobbyPriority.key(), String.valueOf(lobby.priority)));
                 }
-                if (placeholder.lobbyCommandPerCommandStandalone.enabled() || placeholder.lobbyCommandPerCommandSubcommand.enabled() || placeholder.lobbyCommandPerCommandHideOn.enabled()) {
+                if (placeholder.lobbyCommandPerCommandStandalone.enabled()
+                        || placeholder.lobbyCommandPerCommandSubcommand.enabled()
+                        || placeholder.lobbyCommandPerCommandHideOn.enabled()) {
                     lobby.commands.forEach((s, command) -> {
                         if (placeholder.lobbyCommandPerCommandStandalone.enabled()) {
-                            placeholders.add(Placeholder.unparsed(placeholder.lobbyCommandPerCommandStandalone.key().replaceFirst(placeholder.lobbyCommandPerCommandStandalone.placeholder(), s), command.standalone ? "true" : "false"));
+                            placeholders
+                                    .add(Placeholder
+                                            .unparsed(
+                                                    placeholder.lobbyCommandPerCommandStandalone.key()
+                                                            .replaceFirst(placeholder.lobbyCommandPerCommandStandalone
+                                                                    .placeholder(), s),
+                                                    command.standalone ? "true" : "false"));
                         }
                         if (placeholder.lobbyCommandPerCommandSubcommand.enabled()) {
-                            placeholders.add(Placeholder.unparsed(placeholder.lobbyCommandPerCommandSubcommand.key().replaceFirst(placeholder.lobbyCommandPerCommandSubcommand.placeholder(), s), command.subcommand ? "true" : "false"));
+                            placeholders
+                                    .add(Placeholder
+                                            .unparsed(
+                                                    placeholder.lobbyCommandPerCommandSubcommand.key()
+                                                            .replaceFirst(placeholder.lobbyCommandPerCommandSubcommand
+                                                                    .placeholder(), s),
+                                                    command.subcommand ? "true" : "false"));
                         }
                         if (placeholder.lobbyCommandPerCommandHideOn.enabled()) {
-                            placeholders.add(Placeholder.unparsed(placeholder.lobbyCommandPerCommandHideOn.key().replaceFirst(placeholder.lobbyCommandPerCommandHideOn.placeholder(), s), command.hideOn().toString()));
+                            placeholders.add(Placeholder.unparsed(
+                                    placeholder.lobbyCommandPerCommandHideOn.key()
+                                            .replaceFirst(placeholder.lobbyCommandPerCommandHideOn.placeholder(), s),
+                                    command.hideOn().toString()));
                         }
                     });
                 }
                 if (placeholder.lobbyAutojoin.enabled()) {
-                    placeholders.add(Placeholder.unparsed(placeholder.lobbyAutojoin.key(), String.valueOf(lobby.autojoin)));
+                    placeholders
+                            .add(Placeholder.unparsed(placeholder.lobbyAutojoin.key(), String.valueOf(lobby.autojoin)));
                 }
             }
             if (object instanceof Player player) {
@@ -117,7 +157,8 @@ public class MessageUtils extends Utils<MessageUtils> {
                     placeholders.add(Placeholder.unparsed(placeholder.player.key(), player.getUsername()));
                 }
                 if (placeholder.playerUuid.enabled()) {
-                    placeholders.add(Placeholder.unparsed(placeholder.playerUuid.key(), player.getUniqueId().toString()));
+                    placeholders
+                            .add(Placeholder.unparsed(placeholder.playerUuid.key(), player.getUniqueId().toString()));
                 }
             }
         }
@@ -126,13 +167,15 @@ public class MessageUtils extends Utils<MessageUtils> {
 
     public void sendDebugMessage(Audience recipient, String message) {
         sendDebugMessage(recipient, miniMessage().deserialize(message));
+        broadcastDebugMessage(Component.text(recipient.toString()).append(miniMessage().deserialize(message)));
     }
 
     public void sendDebugMessage(Audience recipient, Component message) {
         if (!isDebugEnabled()) {
             return;
         }
-        boolean canSend = ((recipient instanceof Player player) && Utils.util(PlayerUtils.class).canDebug(player)) || recipient instanceof ConsoleCommandSource;
+        boolean canSend = ((recipient instanceof Player player) && Utils.util(PlayerUtils.class).canDebug(player))
+                || recipient instanceof ConsoleCommandSource;
         if (canSend) {
             recipient.sendMessage(toDebugMessage(message));
         }
@@ -147,7 +190,9 @@ public class MessageUtils extends Utils<MessageUtils> {
     }
 
     private Component toDebugMessage(Component message) {
-        return Component.empty().append(Component.text("[Debug]: ").style(Style.style(TextDecoration.BOLD, NamedTextColor.YELLOW))).append(message);
+        return Component.empty()
+                .append(Component.text("[Debug]: ").style(Style.style(TextDecoration.BOLD, NamedTextColor.YELLOW)))
+                .append(message);
     }
 
     public void broadcastDebugMessage(String message) {
@@ -161,7 +206,10 @@ public class MessageUtils extends Utils<MessageUtils> {
         if (!isDebugEnabled()) {
             return;
         }
-        hub.server().filterAudience(audience -> (audience instanceof Player player) && Utils.util(PlayerUtils.class).canDebug(player) || audience instanceof ConsoleCommandSource).sendMessage(toDebugMessage(message));
+        hub.server()
+                .filterAudience(audience -> (audience instanceof Player player)
+                        && Utils.util(PlayerUtils.class).canDebug(player) || audience instanceof ConsoleCommandSource)
+                .sendMessage(toDebugMessage(message));
     }
 
     private boolean isDebugEnabled() {

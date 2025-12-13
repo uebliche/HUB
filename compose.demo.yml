@@ -6,9 +6,7 @@ services:
     container_name: hub-demo-velocity
     working_dir: /app
     volumes:
-      # Prebuilt binaries (provide from your build artifacts)
-      - ./artifacts/velocity-proxy.jar:/app/velocity.jar:ro
-      - ./artifacts/hub-velocity.jar:/app/plugins/hub.jar:ro
+      - ./artifacts:/artifacts:ro
       # Configs
       - ./docker/velocity.docker.toml:/app/velocity.toml:ro
       - ./docker/velocity.forwarding.secret:/app/forwarding.secret:ro
@@ -18,9 +16,20 @@ services:
       - -lc
       - |
         set -euo pipefail
+        VELOCITY_JAR=${VELOCITY_JAR:-/artifacts/velocity.jar}
+        HUB_JAR=${HUB_VELOCITY_JAR:-/artifacts/hub-velocity.jar}
+        if [ ! -s "$VELOCITY_JAR" ]; then
+          echo "Velocity jar missing at $VELOCITY_JAR. Place your prebuilt proxy jar in ./artifacts/velocity.jar" >&2
+          exit 1
+        fi
+        if [ ! -s "$HUB_JAR" ]; then
+          echo "Hub velocity jar missing at $HUB_JAR. Place your prebuilt jar in ./artifacts/hub-velocity.jar" >&2
+          exit 1
+        fi
         mkdir -p plugins
+        cp "$HUB_JAR" /app/plugins/hub.jar
         java -Xms256m -Xmx512m \
-          -jar /app/velocity.jar \
+          -jar "$VELOCITY_JAR" \
           -conf /app/velocity.toml \
           -forwarding-secret-file /app/forwarding.secret
     ports:
@@ -34,8 +43,7 @@ services:
     working_dir: /app
     volumes:
       - lobby-data:/app
-      - ./artifacts/paper-server.jar:/app/paper.jar:ro
-      - ./artifacts/hub-paper.jar:/app/plugins/HUB.jar:ro
+      - ./artifacts:/artifacts:ro
       - ./docker/lobby.server.properties:/app/server.properties:ro
       - ./docker/plugins.hub/config.yml:/app/plugins/HUB/config.yml:ro
     command:
@@ -43,8 +51,20 @@ services:
       - -lc
       - |
         set -euo pipefail
+        PAPER_JAR=${PAPER_JAR:-/artifacts/paper-server.jar}
+        HUB_PAPER_JAR=${HUB_PAPER_JAR:-/artifacts/hub-paper.jar}
+        if [ ! -s "$PAPER_JAR" ]; then
+          echo "Paper server jar missing at $PAPER_JAR. Place your built server jar in ./artifacts/paper-server.jar" >&2
+          exit 1
+        fi
+        if [ ! -s "$HUB_PAPER_JAR" ]; then
+          echo "Hub Paper jar missing at $HUB_PAPER_JAR. Place your built jar in ./artifacts/hub-paper.jar" >&2
+          exit 1
+        fi
+        mkdir -p /app/plugins
+        cp "$HUB_PAPER_JAR" /app/plugins/HUB.jar
         cd /app
-        java -Xms512m -Xmx1G -jar /app/paper.jar --nogui
+        java -Xms512m -Xmx1G -jar "$PAPER_JAR" --nogui
     networks:
       - hub
 
@@ -55,15 +75,26 @@ services:
     environment:
       VELOCITY_SECRET: "secret"
     volumes:
-      - ./artifacts/minestom-ffa-server.jar:/app/minestom-ffa.jar:ro
-      - ./artifacts/hub-minestom-ffa.jar:/app/plugins/hub-ffa.jar:ro
+      - ./artifacts:/artifacts:ro
       - ./docker/ffalobby.server.properties:/app/server.properties:ro
     command:
       - bash
       - -lc
       - |
         set -euo pipefail
-        java -Xms256m -Xmx512m -jar /app/minestom-ffa.jar
+        FFA_JAR=${FFA_JAR:-/artifacts/minestom-ffa-server.jar}
+        HUB_FFA_JAR=${HUB_FFA_JAR:-/artifacts/hub-minestom-ffa.jar}
+        if [ ! -s "$FFA_JAR" ]; then
+          echo "Minestom FFA server jar missing at $FFA_JAR. Place your built server jar in ./artifacts/minestom-ffa-server.jar" >&2
+          exit 1
+        fi
+        if [ ! -s "$HUB_FFA_JAR" ]; then
+          echo "Hub FFA jar missing at $HUB_FFA_JAR. Place your built jar in ./artifacts/hub-minestom-ffa.jar" >&2
+          exit 1
+        fi
+        mkdir -p /app/plugins
+        cp "$HUB_FFA_JAR" /app/plugins/hub-ffa.jar
+        java -Xms256m -Xmx512m -jar "$FFA_JAR"
     networks:
       - hub
 

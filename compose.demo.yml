@@ -4,6 +4,10 @@ services:
   velocity:
     image: ${HUB_VELOCITY_IMAGE:-ghcr.io/uebliche/hub-velocity:latest}
     container_name: hub-demo-velocity
+    volumes:
+      - ./docker/velocity.docker.toml:/app/velocity.toml:ro
+      - ./docker/velocity.forwarding.secret:/app/forwarding.secret:ro
+      - ./docker/plugins.hub:/app/plugins/hub:ro
     ports:
       - "25577:25577"
     environment:

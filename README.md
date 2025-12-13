@@ -1,14 +1,17 @@
 <!-- modrinth_exclude.start -->
 
-# Hub Plugin for Velocity Proxy
+# HUB: Multi-loader Lobby Router
 
 <!-- modrinth_exclude.end -->
 
-This project is a **Hub Plugin** for the **Velocity Proxy Server**. It automatically keeps players on the best lobby
-server that matches their permissions and your routing rules. The plugin leans on MiniMessage for fully styled output and
-ships with a rich debugging toolkit so you can see exactly what it is doing.
+This project is a **Hub Plugin** for your network. It runs on Velocity (primary) and ships sibling loaders for Paper, Fabric, NeoForge, and Minestom so you can keep players on the best lobby server that matches their permissions and your routing rules. The plugin leans on MiniMessage for fully styled output and ships with a rich debugging toolkit so you can see exactly what it is doing.
 
 ## Features at a Glance
+- Multi-loader: Velocity (primary), Paper, Fabric, NeoForge, Minestom.
+- Priority and permission aware routing with parent lobby groups for hierarchical fallbacks.
+- Smart ping cache with fast refresh on empty cache/redirects.
+- Configurable commands and MiniMessage placeholders.
+- Debug toolkit (`/hub debug`) and Modrinth update checks.
 
 ## Tested Versions
 
@@ -42,8 +45,7 @@ ships with a rich debugging toolkit so you can see exactly what it is doing.
 3. **Install**
    - Drop the JAR into the `plugins` directory of your Velocity server and restart once.
 4. **Configure**
-   - Inspect the generated `plugins/hub/config.yml` and adjust it to your network. Reload with `/hub debug reload` or
-     restart the proxy after changes.
+   - Inspect the generated `plugins/hub/config.yml` (Velocity) or platform equivalent and adjust it to your network. Reload with `/hub debug reload` or restart the proxy after changes.
 
 ## Commands
 
@@ -76,22 +78,17 @@ player receives the `system-messages.no-lobby-found-message` and is disconnected
 
 ## Configuration Overview
 
-All options live inside `plugins/hub/config.yml` and are automatically written back with helpful defaults.
+All options live inside `plugins/hub/config.yml` (Velocity) and are automatically written back with helpful defaults.
 
 - `debug`: Controls whether debug output is active and which permission is required to toggle it in game.
 - `messages` & `system-messages`: Global MiniMessage templates used when a lobby does not override them.
-- `base-hub-command`, `aliases`, `hide-hub-command-on-lobby`: Configure the names under which the command is registered
-  and optionally hide the base command when the player is already on a matching server.
+- `base-hub-command`, `aliases`, `hide-hub-command-on-lobby`: Configure command names and optionally hide the base command when the player is already on a matching server.
 - `auto-select`: Enables automatic routing on join and/or after a kick.
-- `lobbies`: Describes every lobby type with a name, regex filter, permission, priority, command exposure, optional
-  message overrides, and a best-effort `autojoin` flag (currently only exposed as a placeholder toggle).
-- `placeholder`: Enables or disables groups of placeholders. Each entry exposes the `key` that is injected into
-  MiniMessage and an example value.
-- `finder`: Tunes the ping cache. `refresh-interval-in-ticks` defines how often every matching server is pinged, while
-  `start-duration` and `max-duration` are used as ping timeouts.
-- `update-checker`: Enables the Modrinth update task. `notification` is used both as the permission checked before
-  showing the message and as the MiniMessage string that is sent when an update is available. `check-interval-in-min`
-  defines the polling cadence. The `notification-message` field is currently not used by the code.
+- `lobby-groups`: Named lists of lobbies you can reference from `parent-groups` to build hierarchical fallbacks.
+- `lobbies`: Describes every lobby type with name, regex filter, permission, priority, command exposure, optional message overrides, and best-effort `autojoin` flag.
+- `placeholder`: Enables or disables groups of placeholders. Each entry exposes the `key` injected into MiniMessage and an example value.
+- `finder`: Tunes the ping cache. `refresh-interval-in-ticks` defines how often every matching server is pinged, while `start-duration` and `max-duration` are ping timeouts.
+- `update-checker`: Enables the Modrinth update task. `notification` is used both as the permission and MiniMessage string when an update is available. `check-interval-in-min` defines the polling cadence.
 
 ### Example Configuration
 
@@ -122,11 +119,17 @@ hide-hub-command-on-lobby: ^(?!.*).$
 auto-select:
   on-join: true
   on-server-kick: true
+lobby-groups:
+  - name: main
+    lobbies: [lobby, teamlobby, premiumlobby]
+  - name: minigame
+    lobbies: [ffa-lobby]
 lobbies:
   - name: teamlobby
     filter: (?i)^teamlobby.*
     permission: hub.team
     priority: 2
+    parent-groups: [main]
     commands:
       teamlobby:
         standalone: false
@@ -138,6 +141,7 @@ lobbies:
     filter: (?i)^premiumlobby.*
     permission: hub.premium
     priority: 1
+    parent-groups: [main]
     commands:
       premiumlobby:
         standalone: true
@@ -146,6 +150,18 @@ lobbies:
     autojoin: true
     overwrite-messages:
       success-message: <#69d9ff>You are now in the <b>Premium Hub</b>.
+  - name: ffa-lobby
+    filter: (?i)^lobby-minestom.*
+    permission: ''
+    priority: 0
+    parent-groups: [main]
+    commands:
+      ffa:
+        standalone: false
+        subcommand: true
+        hide-on: ^(?!.*).$
+    autojoin: true
+    overwrite-messages: {}
   - name: lobby
     filter: (?i)^lobby.*
     permission: ''

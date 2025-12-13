@@ -1,0 +1,18 @@
+compass:
+  fetching: "<yellow>Lobbys werden geladen..."
+  none: "<red>Keine Lobbys verfügbar."
+  connecting: "<gray>Verbinde zu <gold><lobby><gray>..."
+  default-lore:
+    - "<gray>Klicke, um eine Lobby zu wählen"
+  list-item:
+    default-lore:
+      - "<gray>Server: <yellow><server>"
+      - "<gray>Spieler: <green><online></dark_gray>/<green><max>"
+      - "<dark_gray>Klicke zum Beitreten"
+  current-tag: "<gray>(Du)"
+  current-lore: "<gray>Du bist hier."
+navigator:
+  none: "<red>Keine Ziele verfügbar."
+  connecting: "<gray>Verbinde zu <gold><server><gray>..."
+  teleport: "<gray>Teleportiere..."
+  world-missing: "<red>Welt <world> nicht gefunden."

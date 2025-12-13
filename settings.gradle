@@ -1,4 +1,10 @@
 pluginManagement {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
+        gradlePluginPortal()
+        mavenCentral()
+    }
     plugins {
         id "org.jetbrains.gradle.plugin.idea-ext" version settings.ext.ideaExtVersion
         id "xyz.jpenilla.run-paper" version settings.ext.runTaskVersion
@@ -7,8 +13,30 @@ pluginManagement {
     }
 }
 
+// Foojay resolver removed; rely on Gradle’s built-in toolchain auto-download
+
 rootProject.name = 'HUB'
 
-include 'shared'
-include 'velocity'
-include 'paper'
+include 'common'
+include 'loader-velocity'
+include 'loader-paper'
+include 'loader-minestom'
+include 'loader-minestom-ffa'
+
+def wantsNeoForge = gradle.startParameter.taskNames.any { it.contains('loader-neoforge') }
+        || (System.getenv('INCLUDE_NEOFORGE') ?: 'false').toBoolean()
+
+if (wantsNeoForge) {
+    include 'loader-neoforge'
+} else {
+    logger.lifecycle("Skipping loader-neoforge configuration (set INCLUDE_NEOFORGE=true or target a loader-neoforge task to include it).")
+}
+
+def wantsFabric = gradle.startParameter.taskNames.any { it.contains('loader-fabric') }
+        || (System.getenv('INCLUDE_FABRIC') ?: 'false').toBoolean()
+
+if (wantsFabric) {
+    include 'loader-fabric'
+} else {
+    logger.lifecycle("Skipping loader-fabric configuration (set INCLUDE_FABRIC=true or target a loader-fabric task to include it).")
+}

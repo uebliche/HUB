@@ -1,0 +1,21 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="hub"
+version="${version}"
+displayName="Hub"
+description="Hub plugin (NeoForge loader scaffold)"
+authors="FrederikHeinrich"
+[[dependencies.hub]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.hub]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.10,1.22)"
+    ordering="NONE"
+    side="BOTH"

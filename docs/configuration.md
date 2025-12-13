@@ -90,6 +90,27 @@ A lobby entry looks like this:
 - `autojoin`: Informational flag, exported through placeholders.
 - `overwrite-messages`: Partial set of message overrides. Omitted keys fall back to the global `messages` block.
 
+## Last Lobby Preference
+
+```yaml
+last-lobby:
+  enabled: true
+```
+
+- When enabled, HUB remembers the last lobby server a player used (in memory only). `/hub`, join auto-select, and kick redirects try that lobby first if it is online and permitted; otherwise the normal priority routing is used.
+- Flow overview:
+
+```mermaid
+flowchart TD
+    A[Player joins / uses /hub / is kicked] --> B{last-lobby enabled?}
+    B -- no --> F[Normal lobby selection (priority + ping cache)]
+    B -- yes --> C{Remembered lobby still allowed & online?}
+    C -- yes --> D[Pick remembered server (exact server name)]
+    C -- no --> F
+    D --> E[Connect player]
+    F --> E
+```
+
 ## Placeholder Toggles
 
 Every entry beneath `placeholder` controls a set of MiniMessage placeholders. Each holder contains:
@@ -157,3 +178,13 @@ update-checker:
 
 Players that pass the permission check receive the message during login while debug output continues to log update
 availability to the console.
+
+## Example Backend Naming (dev stack)
+
+The provided `velocity.toml` maps multiple lobby-capable backends:
+
+- `lobby` → Minestom (primary)
+- `lobby2` → Paper
+- `lobby3` → NeoForge
+
+Match your `lobbies[].filter` regexes to these names (e.g., `(?i)^lobby.*`) or adjust the server keys to fit your own naming.

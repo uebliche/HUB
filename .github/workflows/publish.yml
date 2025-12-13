@@ -208,7 +208,7 @@ jobs:
           PUBLISH_MINESTOM: ${{ github.event.inputs.publish_minestom }}
         run: |
           set -euo pipefail
-          IMAGE_PREFIX="ghcr.io/${GITHUB_REPOSITORY_OWNER}"
+          IMAGE_PREFIX="ghcr.io/uebliche"
           if [ "$PUBLISH_VELOCITY" = "true" ]; then
             docker build -f docker/Dockerfile.velocity -t "${IMAGE_PREFIX}/hub-velocity:${TAG}" -t "${IMAGE_PREFIX}/hub-velocity:latest" .
             docker push "${IMAGE_PREFIX}/hub-velocity:${TAG}"

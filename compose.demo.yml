@@ -2,99 +2,26 @@ name: hub-demo
 
 services:
   velocity:
-    image: eclipse-temurin:21-jdk
+    image: ${HUB_VELOCITY_IMAGE:-ghcr.io/uebliche/hub-velocity:latest}
     container_name: hub-demo-velocity
-    working_dir: /app
-    volumes:
-      - ./artifacts:/artifacts:ro
-      # Configs
-      - ./docker/velocity.docker.toml:/app/velocity.toml:ro
-      - ./docker/velocity.forwarding.secret:/app/forwarding.secret:ro
-      - ./docker/plugins.hub:/app/plugins/hub:ro
-    command:
-      - bash
-      - -lc
-      - |
-        set -euo pipefail
-        VELOCITY_JAR=${VELOCITY_JAR:-/artifacts/velocity.jar}
-        HUB_JAR=${HUB_VELOCITY_JAR:-/artifacts/hub-velocity.jar}
-        if [ ! -s "$VELOCITY_JAR" ]; then
-          echo "Velocity jar missing at $VELOCITY_JAR. Place your prebuilt proxy jar in ./artifacts/velocity.jar" >&2
-          exit 1
-        fi
-        if [ ! -s "$HUB_JAR" ]; then
-          echo "Hub velocity jar missing at $HUB_JAR. Place your prebuilt jar in ./artifacts/hub-velocity.jar" >&2
-          exit 1
-        fi
-        mkdir -p plugins
-        cp "$HUB_JAR" /app/plugins/hub.jar
-        java -Xms256m -Xmx512m \
-          -jar "$VELOCITY_JAR" \
-          -conf /app/velocity.toml \
-          -forwarding-secret-file /app/forwarding.secret
     ports:
       - "25577:25577"
+    environment:
+      VELOCITY_FORWARDING_SECRET: ${VELOCITY_FORWARDING_SECRET:-secret}
     networks:
       - hub
 
   lobby:
-    image: eclipse-temurin:21-jdk
+    image: ${HUB_PAPER_IMAGE:-ghcr.io/uebliche/hub-paper:latest}
     container_name: hub-demo-lobby
-    working_dir: /app
-    volumes:
-      - lobby-data:/app
-      - ./artifacts:/artifacts:ro
-      - ./docker/lobby.server.properties:/app/server.properties:ro
-      - ./docker/plugins.hub/config.yml:/app/plugins/HUB/config.yml:ro
-    command:
-      - bash
-      - -lc
-      - |
-        set -euo pipefail
-        PAPER_JAR=${PAPER_JAR:-/artifacts/paper-server.jar}
-        HUB_PAPER_JAR=${HUB_PAPER_JAR:-/artifacts/hub-paper.jar}
-        if [ ! -s "$PAPER_JAR" ]; then
-          echo "Paper server jar missing at $PAPER_JAR. Place your built server jar in ./artifacts/paper-server.jar" >&2
-          exit 1
-        fi
-        if [ ! -s "$HUB_PAPER_JAR" ]; then
-          echo "Hub Paper jar missing at $HUB_PAPER_JAR. Place your built jar in ./artifacts/hub-paper.jar" >&2
-          exit 1
-        fi
-        mkdir -p /app/plugins
-        cp "$HUB_PAPER_JAR" /app/plugins/HUB.jar
-        cd /app
-        java -Xms512m -Xmx1G -jar "$PAPER_JAR" --nogui
     networks:
       - hub
 
   ffa:
-    image: eclipse-temurin:21-jdk
+    image: ${HUB_FFA_IMAGE:-ghcr.io/uebliche/hub-ffa:latest}
     container_name: hub-demo-ffa
-    working_dir: /app
     environment:
-      VELOCITY_SECRET: "secret"
-    volumes:
-      - ./artifacts:/artifacts:ro
-      - ./docker/ffalobby.server.properties:/app/server.properties:ro
-    command:
-      - bash
-      - -lc
-      - |
-        set -euo pipefail
-        FFA_JAR=${FFA_JAR:-/artifacts/minestom-ffa-server.jar}
-        HUB_FFA_JAR=${HUB_FFA_JAR:-/artifacts/hub-minestom-ffa.jar}
-        if [ ! -s "$FFA_JAR" ]; then
-          echo "Minestom FFA server jar missing at $FFA_JAR. Place your built server jar in ./artifacts/minestom-ffa-server.jar" >&2
-          exit 1
-        fi
-        if [ ! -s "$HUB_FFA_JAR" ]; then
-          echo "Hub FFA jar missing at $HUB_FFA_JAR. Place your built jar in ./artifacts/hub-minestom-ffa.jar" >&2
-          exit 1
-        fi
-        mkdir -p /app/plugins
-        cp "$HUB_FFA_JAR" /app/plugins/hub-ffa.jar
-        java -Xms256m -Xmx512m -jar "$FFA_JAR"
+      VELOCITY_FORWARDING_SECRET: ${VELOCITY_FORWARDING_SECRET:-secret}
     networks:
       - hub
 

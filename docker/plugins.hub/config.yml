@@ -25,11 +25,25 @@ hide-hub-command-on-lobby: ^(?!.*).$
 auto-select:
   on-join: true
   on-server-kick: true
+last-lobby:
+  enabled: true
+lobby-groups:
+- name: main
+  lobbies:
+  - lobby
+  - teamlobby
+  - premiumlobby
+- name: minigame
+  lobbies:
+  - ffa-lobby
 lobbies:
 - name: teamlobby
   filter: (?i)^teamlobby.*
   permission: hub.team
   priority: 2
+  parent: ''
+  parent-groups:
+  - lobby
   commands:
     teamlobby:
       standalone: false
@@ -41,6 +55,9 @@ lobbies:
   filter: (?i)^premiumlobby.*
   permission: hub.premium
   priority: 1
+  parent: ''
+  parent-groups:
+  - lobby
   commands:
     premiumlobby:
       standalone: true
@@ -49,10 +66,26 @@ lobbies:
   autojoin: true
   overwrite-messages:
     success-message: <#69d9ff>You are now in the <b>Premium Hub</b>.
+- name: ffa-lobby
+  filter: (?i)^lobby-minestom.*
+  permission: ''
+  priority: 0
+  parent: ''
+  parent-groups:
+  - main
+  commands:
+    ffa:
+      standalone: false
+      subcommand: true
+      hide-on: ^(?!.*).$
+  autojoin: true
+  overwrite-messages: {}
 - name: lobby
   filter: (?i)^lobby.*
   permission: ''
   priority: 0
+  parent: ''
+  parent-groups: []
   commands:
     base:
       standalone: false
@@ -138,8 +171,5 @@ finder:
   refresh-interval-in-ticks: 40
 update-checker:
   enabled: true
-  notification: hub.update
-  check-interval-in-min: 360
-  notification-message: |
-    An update is available! Latest version: <latest>, you are using: <current>
-    Download it at https://modrinth.com/plugin/hub/version/<latest>
+  notification: ''
+  check-interval-in-min: 30

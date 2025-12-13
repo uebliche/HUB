@@ -1,0 +1,110 @@
+compass:
+  enabled: true
+  gui-title: "<aqua>Select Lobby"
+  cache-ttl-millis: 10000
+  item:
+    name: "<gold>Lobby Compass"
+    lore:
+      - "<gray>Right-click to choose a lobby"
+    material: MAGMA_CREAM
+    slot: 0
+    allow-move: false
+    allow-drop: false
+    drop-on-death: true
+    restore-on-respawn: true
+  list-item:
+    name: "<gold><lobby>"
+    lore:
+      - "<gray>Server: <yellow><server>"
+      - "<gray>Players: <green><online></dark_gray>/<green><max>"
+      - "<dark_gray>Click to join"
+
+navigator:
+  enabled: true
+  gui-title: "<aqua>Navigator"
+  gui-rows: 0 # 0 = auto, otherwise 1-6 rows
+  item:
+    name: "<gold>Navigator"
+    lore:
+      - "<gray>Open navigator"
+    material: COMPASS
+    slot: 4
+    allow-move: false
+    allow-drop: false
+    drop-on-death: true
+    restore-on-respawn: true
+  entries:
+    spawn:
+      name: "<gold>Spawn"
+      lore:
+        - "<gray>Teleport to spawn"
+      icon: COMPASS
+      action: teleport
+      world: world
+      x: 0
+      y: 64
+      z: 0
+      yaw: 0
+      pitch: 0
+      slot: 13
+    lobbies:
+      name: "<gold>Lobbies"
+      lore:
+        - "<gray>Open lobby selector"
+      icon: BOOK
+      action: lobby
+      slot: 11
+    lobby:
+      name: "<gold>Lobby"
+      lore:
+        - "<gray>Join lobby server"
+      icon: ENDER_PEARL
+      action: server
+      server: lobby
+      slot: 15
+    premium:
+      name: "<gold>Premium Lobby"
+      lore:
+        - "<gray>Join premium lobby"
+      icon: DIAMOND
+      action: server
+      server: premiumlobby
+      slot: 21
+    team:
+      name: "<gold>Team Lobby"
+      lore:
+        - "<gray>Join team lobby"
+      icon: GOLD_INGOT
+      action: server
+      server: teamlobby
+      slot: 23
+    worldspawn:
+      name: "<gold>World Spawn"
+      lore:
+        - "<gray>Teleport to world spawn"
+      icon: AMETHYST_SHARD
+      action: teleport
+      world: world
+      x: 0
+      y: 80
+      z: 0
+      yaw: 0
+      pitch: 0
+      slot: 31
+
+spawn-teleport:
+  enabled: false
+  world: world
+  x: 0
+  y: 64
+  z: 0
+  yaw: 0
+  pitch: 0
+
+gameplay:
+  disable-damage: true
+  disable-hunger: true
+  heal-on-join: true
+
+minestom:
+  velocity-secret: "hubsecret"

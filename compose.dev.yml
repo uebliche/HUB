@@ -8,9 +8,9 @@ services:
     volumes:
       - ./:/workspace
       # Use a Docker-specific Velocity config pointing to the limbo services
-      - ./docker/velocity.docker.toml:/workspace/velocity/run/velocity.toml
-      - ./docker/velocity.forwarding.secret:/workspace/velocity/run/forwarding.secret
-      - ./docker/plugins.hub:/workspace/velocity/run/plugins/hub
+      - ./docker/velocity.docker.toml:/workspace/loader-velocity/run/velocity.toml
+      - ./docker/velocity.forwarding.secret:/workspace/loader-velocity/run/forwarding.secret
+      - ./docker/plugins.hub:/workspace/loader-velocity/run/plugins/hub
     environment:
       GRADLE_USER_HOME: /gradle-cache/velocity
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/velocity-project
@@ -26,13 +26,15 @@ services:
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
         mkdir -p /gradle-cache/velocity
-        rm -rf /workspace/shared/build /workspace/velocity/build
-        "$$tmp" --gradle-user-home /gradle-cache/velocity --project-cache-dir /gradle-cache/velocity-project :velocity:runVelocity --no-daemon
+        # reset plugin configs to defaults each run
+        rm -f /workspace/loader-velocity/run/plugins/hub/config.yml
+        rm -rf /workspace/common/build /workspace/loader-velocity/build
+        rm -rf /gradle-cache/velocity/caches/fabric-loom
+        "$$tmp" --gradle-user-home /gradle-cache/velocity --project-cache-dir /gradle-cache/velocity-project :loader-velocity:runVelocity --no-daemon
     depends_on:
       - paper
-      - lobby
-      - premiumlobby
-      - teamlobby
+      - minestom
+      - ffa
     ports:
       - "25577:25577"
     networks:
@@ -61,50 +63,126 @@ services:
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
         mkdir -p /gradle-cache/paper
-        rm -rf /workspace/shared/build /workspace/paper/build
-        "$$tmp" --gradle-user-home /gradle-cache/paper --project-cache-dir /gradle-cache/paper-project :paper:runServer --no-daemon
+        # reset plugin configs to defaults each run
+        rm -f /workspace/loader-paper/run/plugins/HUB/config.yml
+        rm -rf /workspace/common/build /workspace/loader-paper/build
+        rm -rf /gradle-cache/paper/caches/fabric-loom
+        "$$tmp" --gradle-user-home /gradle-cache/paper --project-cache-dir /gradle-cache/paper-project :loader-paper:runServer --no-daemon
     networks:
       - hub
 
-  # Lightweight backend placeholders ("Limbo" servers)
-  lobby: &limbo
-    image: itzg/minecraft-server
+  ffa:
+    image: eclipse-temurin:25-jdk
+    working_dir: /workspace
     volumes:
-      - ./docker/lobby.server.properties:/data/server.properties
+      - ./:/workspace
     environment:
-      EULA: "TRUE"
-      TYPE: "LIMBO"
-      ONLINE_MODE: "FALSE" # backends run in offline-mode when behind a proxy
-      # Keep it light; adjust as needed for your machine
-      MEMORY: 512M
-      # Give each a distinct MOTD so you can tell them apart
-      MOTD: "Limbo 1"
+      GRADLE_USER_HOME: /gradle-cache/minestom-ffa
+      GRADLE_PROJECT_CACHE_DIR: /gradle-cache/minestom-ffa-project
+      VELOCITY_SECRET: "secret"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        apt-get update -y >/dev/null && apt-get install -y --no-install-recommends openjdk-21-jdk-headless >/dev/null
+        export JAVA_HOME_21=/usr/lib/jvm/java-21-openjdk-amd64
+        export PATH="/usr/lib/jvm/java-21-openjdk-amd64/bin:$$PATH"
+        tmp=/workspace/gradlew-docker-$$$$
+        trap 'rm -f "$$tmp"' EXIT
+        tr -d '\r' < gradlew > "$$tmp"
+        chmod +x "$$tmp"
+        rm -rf /gradle-cache/minestom-ffa
+        mkdir -p /gradle-cache/minestom-ffa /gradle-cache/minestom-ffa-project
+        "$$tmp" --gradle-user-home /gradle-cache/minestom-ffa --project-cache-dir /gradle-cache/minestom-ffa-project :loader-minestom-ffa:run --no-daemon
     networks:
       - hub
 
-  premiumlobby:
-    <<: *limbo
+  fabric:
+    image: eclipse-temurin:21-jdk
+    working_dir: /workspace
     volumes:
-      - ./docker/premiumlobby.server.properties:/data/server.properties
+      - ./:/workspace
     environment:
-      EULA: "TRUE"
-      TYPE: "LIMBO"
-      ONLINE_MODE: "FALSE"
-      MEMORY: 512M
-      MOTD: "Limbo 2"
+      GRADLE_USER_HOME: /gradle-cache/fabric
+      GRADLE_PROJECT_CACHE_DIR: /gradle-cache/fabric-project
+      mcVersion: 1.21.11
+      INCLUDE_FABRIC: "true"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        tmp=/workspace/gradlew-docker-$$$$
+        trap 'rm -f "$$tmp"' EXIT
+        tr -d '\r' < gradlew > "$$tmp"
+        chmod +x "$$tmp"
+        mkdir -p /gradle-cache/fabric
+        # reset plugin configs to defaults each run
+        rm -f /workspace/loader-fabric/run/config/hub.yaml
+        rm -rf /workspace/common/build /workspace/loader-fabric/build
+        rm -rf /gradle-cache/fabric/caches/fabric-loom
+        "$$tmp" --gradle-user-home /gradle-cache/fabric --project-cache-dir /gradle-cache/fabric-project :loader-fabric:runServer --no-daemon
     networks:
       - hub
 
-  teamlobby:
-    <<: *limbo
+  neoforge:
+    image: eclipse-temurin:21-jdk
+    working_dir: /workspace
     volumes:
-      - ./docker/teamlobby.server.properties:/data/server.properties
+      - ./:/workspace
     environment:
-      EULA: "TRUE"
-      TYPE: "LIMBO"
-      ONLINE_MODE: "FALSE"
-      MEMORY: 512M
-      MOTD: "Limbo 3"
+      GRADLE_USER_HOME: /gradle-cache/neoforge
+      GRADLE_PROJECT_CACHE_DIR: /gradle-cache/neoforge-project
+      mcVersion: 1.21.10
+      INCLUDE_NEOFORGE: "true"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        tmp=/workspace/gradlew-docker-$$$$
+        trap 'rm -f "$$tmp"' EXIT
+        tr -d '\r' < gradlew > "$$tmp"
+        chmod +x "$$tmp"
+        rm -rf /gradle-cache/neoforge
+        mkdir -p /gradle-cache/neoforge
+        # reset plugin configs to defaults each run
+        rm -f /workspace/loader-neoforge/run/config/hub.yaml
+        rm -rf /workspace/common/build /workspace/loader-neoforge/build /workspace/loader-neoforge/run/mods
+        rm -rf /gradle-cache/neoforge/caches/fabric-loom
+        rm -rf /gradle-cache/neoforge/caches/neoformruntime
+        "$$tmp" --gradle-user-home /gradle-cache/neoforge --project-cache-dir /gradle-cache/neoforge-project :loader-neoforge:runServer --no-daemon
+    networks:
+      - hub
+
+  minestom:
+    image: eclipse-temurin:25-jdk
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      GRADLE_USER_HOME: /gradle-cache/minestom
+      GRADLE_PROJECT_CACHE_DIR: /gradle-cache/minestom-project
+      VELOCITY_SECRET: "secret"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        apt-get update -y >/dev/null && apt-get install -y --no-install-recommends openjdk-21-jdk-headless >/dev/null
+        export JAVA_HOME_21=/usr/lib/jvm/java-21-openjdk-amd64
+        export PATH="/usr/lib/jvm/java-21-openjdk-amd64/bin:$$PATH"
+        tmp=/workspace/gradlew-docker-$$$$
+        trap 'rm -f "$$tmp"' EXIT
+        tr -d '\r' < gradlew > "$$tmp"
+        chmod +x "$$tmp"
+        rm -rf /gradle-cache/minestom
+        mkdir -p /gradle-cache/minestom
+        # reset plugin configs to defaults each run
+        rm -f /workspace/loader-minestom/run/config/hub.yaml
+        rm -rf /workspace/common/build /workspace/loader-minestom/build /workspace/loader-minestom/run
+        "$$tmp" --gradle-user-home /gradle-cache/minestom --project-cache-dir /gradle-cache/minestom-project :loader-minestom:run --no-daemon
     networks:
       - hub
 

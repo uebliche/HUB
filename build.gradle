@@ -12,6 +12,8 @@ plugins {
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.8'
 }
 
+// Use default Gradle build dirs; may revisit if file locks reappear
+
 def fetchJson(String url) {
     def connection = new URL(url).openConnection()
     connection.setRequestProperty('User-Agent', 'uebliche')

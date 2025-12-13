@@ -1,0 +1,62 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://repo.papermc.io/repository/maven-public" }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    maven { url "https://s01.oss.sonatype.org/content/repositories/releases/" }
+}
+
+dependencies {
+    implementation libs.configurate.core
+    implementation "com.google.code.gson:gson:2.10.1"
+    implementation "net.kyori:adventure-text-minimessage:4.17.0"
+    implementation "net.kyori:adventure-text-serializer-plain:4.17.0"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+configurations.configureEach {
+    attributes.attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 21)
+}
+
+// avoid chmod issues on mounted volumes (let defaults apply)
+
+def templateSource = file('src/main/templates')
+def templateDest = layout.buildDirectory.dir('generated/sources/templates')
+
+task generateTemplates(type: Copy) {
+    def commitCode = rootProject.hasProperty('commitCode') ? rootProject.property('commitCode') : (System.getenv('GITHUB_SHA') ?: 'dev')
+    def releaseTag = rootProject.hasProperty('releaseDate') ? rootProject.property('releaseDate') : (rootProject.ext.has('tag') ? rootProject.ext.tag : rootProject.version?.toString())
+
+    def props = [
+            'version': rootProject.version?.toString(),
+            'commit' : commitCode,
+            'tag'    : releaseTag,
+            'name'   : rootProject.name,
+            'id'     : rootProject.name.toLowerCase(),
+            'group'  : project.group,
+            'author' : "Freddi"
+    ]
+
+    inputs.properties(props)
+    from templateSource
+    into templateDest
+    expand props
+    // avoid chmod attempts on mounted volumes
+}
+
+// Stelle sicher, dass die Templates generiert werden, bevor der Code kompiliert wird
+compileJava.dependsOn generateTemplates
+
+// Füge die generierten Templates zu den Quellordnern hinzu
+sourceSets.main.java.srcDir templateDest
+
+// Setze das Verzeichnis der generierten Templates für späteren Zugriff
+ext.generatedTemplateDir = templateDest.get().asFile
+
+

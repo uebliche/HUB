@@ -1,0 +1,138 @@
+plugins {
+    alias(libs.plugins.fabric.loom)
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+    maven { url = "https://maven.fabricmc.net/" }
+}
+
+dependencies {
+    def fetchJson = { String url -> new groovy.json.JsonSlurper().parse(new URL(url)) }
+    def fetchText = { String url -> new URL(url).text }
+    def parseVersion = { String v ->
+        v.tokenize('.+-').collect { token -> token.isInteger() ? token.toInteger() : token.toString() }
+    }
+
+    def latestGameVersion = {
+        try {
+            def jdLines = fetchText("https://maven.fabricmc.net/jdlist.txt").readLines()
+            def versions = jdLines.findAll { it.startsWith("fabric-api-") }
+                    .collect { it.split("\\+").last() }
+            return versions.max { a, b ->
+                def va = parseVersion(a)
+                def vb = parseVersion(b)
+                for (int i = 0; i < Math.max(va.size(), vb.size()); i++) {
+                    def ai = i < va.size() ? va[i] : 0
+                    def bi = i < vb.size() ? vb[i] : 0
+                    def cmp = ai instanceof Integer && bi instanceof Integer ? (ai <=> bi) : ai.toString() <=> bi.toString()
+                    if (cmp != 0) return cmp
+                }
+                return 0
+            } ?: "1.21.11"
+        } catch (Exception ignored) {
+            return "1.21.11"
+        }
+    }
+
+    def resolveFabricVersions = { String game ->
+        try {
+            if (!project.ext.has('cachedJdList')) {
+                project.ext.cachedJdList = fetchText("https://maven.fabricmc.net/jdlist.txt").readLines()
+            }
+            def jdList = project.ext.cachedJdList
+            def loaders = fetchJson("https://meta.fabricmc.net/v2/versions/loader/${game}")
+            def loaderEntry = loaders.find { it.loader?.stable } ?: loaders[0]
+            def loaderVer = loaderEntry?.loader?.version ?: "0.18.1"
+
+            def apiVer = jdList.findAll { it.startsWith("fabric-api-") && it.endsWith("+${game}") }
+                    *.replace("fabric-api-", "")
+                    .max { a, b ->
+                        def va = parseVersion(a)
+                        def vb = parseVersion(b)
+                        for (int i = 0; i < Math.max(va.size(), vb.size()); i++) {
+                            def ai = i < va.size() ? va[i] : 0
+                            def bi = i < vb.size() ? vb[i] : 0
+                            if (ai instanceof Integer && bi instanceof Integer) {
+                                if (ai != bi) return ai <=> bi
+                            } else {
+                                def cmp = ai.toString() <=> bi.toString()
+                                if (cmp != 0) return cmp
+                            }
+                        }
+                        return 0
+                    }
+
+            if (apiVer == null) {
+                // fallback to the highest available fabric-api, even if game suffix differs
+                apiVer = jdList.findAll { it.startsWith("fabric-api-") }
+                        *.replace("fabric-api-", "")
+                        .max { a, b ->
+                            def va = parseVersion(a)
+                            def vb = parseVersion(b)
+                            for (int i = 0; i < Math.max(va.size(), vb.size()); i++) {
+                                def ai = i < va.size() ? va[i] : 0
+                                def bi = i < vb.size() ? vb[i] : 0
+                                def cmp = ai instanceof Integer && bi instanceof Integer ? (ai <=> bi) : ai.toString() <=> bi.toString()
+                                if (cmp != 0) return cmp
+                            }
+                            return 0
+                        }
+            }
+            return [loader: loaderVer, api: apiVer]
+        } catch (Exception ex) {
+            def fallbackLoader = "0.18.1"
+            def fallbackApi = "0.139.5+1.21.11"
+            return [loader: fallbackLoader, api: fallbackApi]
+        }
+    }
+
+    def mcVer = (System.getenv('mcVersion') ?: project.findProperty('mcVersion') ?: '1.21.11').toString()
+    if (mcVer.equalsIgnoreCase('latest')) {
+        mcVer = latestGameVersion() ?: '1.21.11'
+    }
+
+    def resolved = resolveFabricVersions(mcVer)
+    def loaderVer = resolved.loader
+    def apiVer = resolved.api
+
+    minecraft "com.mojang:minecraft:${mcVer}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loaderVer}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${apiVer}"
+    implementation project(':common')
+    implementation libs.configurate.yaml
+    implementation "net.kyori:adventure-text-minimessage:4.17.0"
+    implementation "net.kyori:adventure-text-serializer-gson:4.17.0"
+}
+
+loom {
+    // Fabric API for 1.21.11 currently ships javadocs with intermediary names only; disable mod-provided
+    // javadoc remapping to avoid Loom failures when using official mappings.
+    enableModProvidedJavadoc.set(false)
+    runs {
+        server {
+            server()
+            runDir("run")
+        }
+    }
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+tasks.processResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+// Debug classpath if needed
+tasks.named("compileJava") {
+    doFirst {
+        logger.lifecycle("compileJava classpath:\n${classpath.asPath}")
+    }
+}

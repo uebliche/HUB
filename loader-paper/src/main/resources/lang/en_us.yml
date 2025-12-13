@@ -1,0 +1,18 @@
+compass:
+  fetching: "<yellow>Fetching lobbies..."
+  none: "<red>No lobbies available."
+  connecting: "<gray>Connecting to <gold><lobby><gray>..."
+  default-lore:
+    - "<gray>Right-click to choose a lobby"
+  list-item:
+    default-lore:
+      - "<gray>Server: <yellow><server>"
+      - "<gray>Players: <green><online></dark_gray>/<green><max>"
+      - "<dark_gray>Click to join"
+  current-tag: "<gray>(You)"
+  current-lore: "<gray>You are here."
+navigator:
+  none: "<red>No navigator entries available."
+  connecting: "<gray>Connecting to <gold><server><gray>..."
+  teleport: "<gray>Teleporting..."
+  world-missing: "<red>World <world> not found."

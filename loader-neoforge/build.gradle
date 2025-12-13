@@ -1,0 +1,71 @@
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+
+plugins {
+    id 'java'
+    alias(libs.plugins.neoforge.moddev)
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://maven.neoforged.net/releases" }
+    maven { url "https://libraries.minecraft.net" }
+}
+
+evaluationDependsOn(':common')
+
+group = rootProject.group
+version = rootProject.version
+
+def mcVer = (System.getenv('mcVersion') ?: project.findProperty('mcVersion') ?: '1.21.10').toString()
+def neoVersions = [
+        // NeoForge build for MC 1.21.10
+        '1.21.10': '21.10.63'
+]
+def neoForgeVersion = neoVersions[mcVer] ?: neoVersions['1.21.10']
+
+dependencies {
+    implementation project(':common')
+    implementation "net.neoforged:neoforge:${neoForgeVersion}"
+    implementation "net.kyori:adventure-text-minimessage:4.17.0"
+    implementation "net.kyori:adventure-text-serializer-gson:4.17.0"
+    implementation libs.configurate.core
+    implementation libs.configurate.yaml
+    constraints {
+        implementation('com.google.code.gson:gson:2.11.0') {
+            because 'NeoForge runtime now expects gson Strictness (2.11+); align to avoid ClassNotFound'
+        }
+    }
+}
+
+configurations.all {
+    resolutionStrategy.force "com.google.code.gson:gson:2.11.0"
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'com.google.code.gson' && details.requested.name == 'gson') {
+            details.useVersion '2.11.0'
+        }
+    }
+}
+
+neoForge {
+    version = neoForgeVersion
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+            programArguments.addAll('--nogui')
+        }
+    }
+}
+
+tasks.register("printExtensions") {
+    doLast {
+        println "Extensions:"
+        project.extensions.extensionsSchema.elements.each { println " - ${it.name}" }
+    }
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}

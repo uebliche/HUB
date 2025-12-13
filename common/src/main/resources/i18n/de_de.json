@@ -1,0 +1,9 @@
+{
+  "compass.debug-list": "<gray>📤 Sent lobby list to compass (<count> entries).</gray>",
+  "compass.error-not-found": "<red>❌ Kompass: Lobby nicht gefunden (<lobby>).</red>",
+  "compass.error-no-permission": "<red>Du darfst dieser Lobby nicht beitreten.</red>",
+  "compass.error-no-server": "<red>Aktuell kein Lobby-Server verfügbar.</red>",
+  "compass.debug-connect": "<gray>🧭 Kompass verbindet zu <server>.</gray>",
+  "compass.current-tag": "<gray>(Du)</gray>",
+  "compass.current-lore": "<gray>Du bist hier.</gray>"
+}

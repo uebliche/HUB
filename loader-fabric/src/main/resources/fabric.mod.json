@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "hub",
+  "version": "${version}",
+  "name": "Hub",
+  "description": "Hub plugin (Fabric loader scaffold)",
+  "authors": [
+    "FrederikHeinrich"
+  ],
+  "contact": {
+    "sources": "https://github.com/uebliche/HUB"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.uebliche.hub.fabric.HubFabric"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": ">=1.21.0"
+  }
+}

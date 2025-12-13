@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    maven {
+        url = "https://central.sonatype.com/repository/maven-snapshots/"
+        content {
+            includeModule("net.minestom", "minestom")
+        }
+    }
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+group = rootProject.group
+version = rootProject.version
+
+dependencies {
+    implementation "net.kyori:adventure-text-minimessage:4.17.0"
+    implementation "net.minestom:minestom:1_21_11-SNAPSHOT"
+    runtimeOnly "org.slf4j:slf4j-simple:2.0.16"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+configurations.configureEach {
+    attributes.attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+}
+
+application {
+    mainClass = 'net.uebliche.ffa.FfaServer'
+    applicationDefaultJvmArgs = ['-Dminestom.chunk-view-distance=8']
+}

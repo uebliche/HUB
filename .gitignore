@@ -113,6 +113,15 @@ gradle-app.setting
 
 # Common working directory
 velocity/run/
+loader-velocity/run/
+loader-paper/run/
+loader-neoforge/run/
+loader-fabric/run/
+loader-minestom/run/
+loader-minestom-ffa/run/
+
+# Local build cache
+.gradle-build/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
@@ -122,3 +131,4 @@ velocity/run/
 paper/run/**
 .vscode/
 gradlew-docker-1
+loader-velocity/run/

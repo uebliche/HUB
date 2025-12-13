@@ -21,6 +21,8 @@ features:
     details: Background refresh keeps latency and player counts fresh so players connect instantly.
   - title: Flexible Commands
     details: Change the base command, register aliases, and expose lobby specific commands as needed.
+  - title: Remembers Your Lobby
+    details: Players are sent back to the last lobby they used when they /hub or get kicked (if still online).
   - title: MiniMessage Everywhere
     details: Ship network-branded messages with MiniMessage placeholders for server, lobby, and player data.
   - title: Update Awareness

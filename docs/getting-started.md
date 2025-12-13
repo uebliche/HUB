@@ -6,7 +6,7 @@ Follow these steps to install the HUB plugin on a Velocity proxy and verify that
 
 - Velocity Proxy (latest release)
 - Java 21 runtime
-- At least one registered lobby server in `velocity.toml`
+- At least one registered lobby server in `velocity.toml` (e.g., `lobby`, `lobby2`, `lobby3` pointing at Minestom/Paper/NeoForge in the dev stack)
 
 ## Installation
 
@@ -22,6 +22,11 @@ Follow these steps to install the HUB plugin on a Velocity proxy and verify that
 - Toggle debug mode with `/hub debug enable` and repeat the command. You will receive detailed messages describing the
   selection process, including cached ping data and permission checks.
 - Try `/hub debug messages` to preview every MiniMessage string with live placeholder values.
+
+## Running the Dev Stack (Docker)
+
+- The provided `compose.dev.yml` starts Velocity plus: Minestom as primary lobby, Paper and NeoForge as extra lobby targets, and a standalone FFA Minestom server.
+- Start with `docker compose -f compose.dev.yml up velocity minestom ffa` (add `paper`/`neoforge` as needed). Velocity expects backends named `lobby`, `lobby2`, `lobby3` (already mapped to the containers).
 
 ## Adding Lobbies
 

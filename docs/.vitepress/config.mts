@@ -1,10 +1,14 @@
 import {defineConfig} from 'vitepress'
+import {withMermaid} from 'vitepress-plugin-mermaid'
 
-export default defineConfig({
+export default withMermaid(defineConfig({
     title: 'HUB',
     description: 'Velocity lobby plugin with smart routing',
     cleanUrls: true,
     head: [],
+    markdown: {
+        mermaid: true
+    },
 
     themeConfig: {
         nav: [
@@ -33,5 +37,5 @@ export default defineConfig({
             {icon: 'discord', link: 'https://discord.gg/freddi'}
         ]
     }
-})
+}))
 

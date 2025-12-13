@@ -29,21 +29,22 @@ services:
       - hub
 
   lobby:
-    image: itzg/minecraft-server:java21
+    image: eclipse-temurin:21-jdk
     container_name: hub-demo-lobby
-    environment:
-      EULA: "TRUE"
-      TYPE: "PAPER"
-      VERSION: "1.21.11"
-      ENABLE_RCON: "false"
-      ONLINE_MODE: "false"
-      DIFFICULTY: "peaceful"
-      MAX_PLAYERS: "20"
+    working_dir: /app
     volumes:
-      - lobby-data:/data
-      - ./artifacts/hub-paper.jar:/data/plugins/HUB.jar:ro
-      - ./docker/lobby.server.properties:/data/server.properties:ro
-      - ./docker/plugins.hub/config.yml:/data/plugins/HUB/config.yml:ro
+      - lobby-data:/app
+      - ./artifacts/paper-server.jar:/app/paper.jar:ro
+      - ./artifacts/hub-paper.jar:/app/plugins/HUB.jar:ro
+      - ./docker/lobby.server.properties:/app/server.properties:ro
+      - ./docker/plugins.hub/config.yml:/app/plugins/HUB/config.yml:ro
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        cd /app
+        java -Xms512m -Xmx1G -jar /app/paper.jar --nogui
     networks:
       - hub
 
@@ -54,7 +55,8 @@ services:
     environment:
       VELOCITY_SECRET: "secret"
     volumes:
-      - ./artifacts/hub-minestom-ffa.jar:/app/minestom-ffa.jar:ro
+      - ./artifacts/minestom-ffa-server.jar:/app/minestom-ffa.jar:ro
+      - ./artifacts/hub-minestom-ffa.jar:/app/plugins/hub-ffa.jar:ro
       - ./docker/ffalobby.server.properties:/app/server.properties:ro
     command:
       - bash

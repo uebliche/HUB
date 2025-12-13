@@ -15,6 +15,26 @@ on:
         type: boolean
         description: Debug build
         default: false
+      publish_velocity:
+        type: boolean
+        description: Publish Velocity loader
+        default: true
+      publish_paper:
+        type: boolean
+        description: Publish Paper loader
+        default: true
+      publish_fabric:
+        type: boolean
+        description: Publish Fabric loader
+        default: true
+      publish_neoforge:
+        type: boolean
+        description: Publish NeoForge loader
+        default: true
+      publish_minestom:
+        type: boolean
+        description: Publish Minestom loaders
+        default: true
       version:
         type: string
         description: Version to use (leave empty for auto-tag)
@@ -127,7 +147,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
@@ -135,24 +155,88 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
-      - name: Build project
-        run: ./gradlew clean build -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+      - name: Build selected modules
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
+          VERSION_TYPE: ${{ github.event.inputs.version_type }}
+          DEBUG_BUILD: ${{ github.event.inputs.debug }}
+          PUBLISH_VELOCITY: ${{ github.event.inputs.publish_velocity }}
+          PUBLISH_PAPER: ${{ github.event.inputs.publish_paper }}
+          PUBLISH_FABRIC: ${{ github.event.inputs.publish_fabric }}
+          PUBLISH_NEOFORGE: ${{ github.event.inputs.publish_neoforge }}
+          PUBLISH_MINESTOM: ${{ github.event.inputs.publish_minestom }}
+        run: |
+          set -euo pipefail
+          tasks=()
+          if [ "$PUBLISH_VELOCITY" = "true" ]; then
+            tasks+=(":loader-velocity:build")
+          fi
+          if [ "$PUBLISH_PAPER" = "true" ]; then
+            tasks+=(":loader-paper:build")
+          fi
+          if [ "$PUBLISH_FABRIC" = "true" ]; then
+            tasks+=(":loader-fabric:build")
+          fi
+          if [ "$PUBLISH_NEOFORGE" = "true" ]; then
+            tasks+=(":loader-neoforge:build")
+          fi
+          if [ "$PUBLISH_MINESTOM" = "true" ]; then
+            tasks+=(":loader-minestom:build" ":loader-minestom-ffa:build")
+          fi
+          if [ ${#tasks[@]} -eq 0 ]; then
+            echo "No modules selected to build." >&2
+            exit 1
+          fi
+          ./gradlew clean "${tasks[@]}" -Ptag="$TAG" -Pversion_type="$VERSION_TYPE" -Pdebug="$DEBUG_BUILD"
 
       - name: Upload build artifacts to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.release.outputs.tag }}
           files: |
-            velocity/build/libs/*.jar
-            paper/build/libs/*.jar
+            loader-velocity/build/libs/*.jar
+            loader-paper/build/libs/*.jar
+            loader-fabric/build/libs/*.jar
+            loader-neoforge/build/libs/*.jar
+            loader-minestom/build/libs/*.jar
+            loader-minestom-ffa/build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to Modrinth
+      - name: Publish to Modrinth (Velocity)
+        if: ${{ github.event.inputs.publish_velocity == 'true' }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CHANGELOG: ${{ needs.release.outputs.notes }}
-        run: ./gradlew :velocity:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+        run: ./gradlew :loader-velocity:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+
+      - name: Publish to Modrinth (Paper)
+        if: ${{ github.event.inputs.publish_paper == 'true' }}
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CHANGELOG: ${{ needs.release.outputs.notes }}
+        run: ./gradlew :loader-paper:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+
+      - name: Publish to Modrinth (Fabric)
+        if: ${{ github.event.inputs.publish_fabric == 'true' }}
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CHANGELOG: ${{ needs.release.outputs.notes }}
+        run: ./gradlew :loader-fabric:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+
+      - name: Publish to Modrinth (NeoForge)
+        if: ${{ github.event.inputs.publish_neoforge == 'true' }}
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CHANGELOG: ${{ needs.release.outputs.notes }}
+        run: ./gradlew :loader-neoforge:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
+
+      - name: Publish to Modrinth (Minestom)
+        if: ${{ github.event.inputs.publish_minestom == 'true' }}
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CHANGELOG: ${{ needs.release.outputs.notes }}
+        run: ./gradlew :loader-minestom:modrinth :loader-minestom-ffa:modrinth -Ptag=${{ needs.release.outputs.tag }} -Pversion_type=${{ github.event.inputs.version_type }} -Pdebug=${{ github.event.inputs.debug }}
 
   update-description:
     if: ${{ github.event.inputs.only_description == 'true' }}
@@ -162,7 +246,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
@@ -173,4 +257,4 @@ jobs:
       - name: Sync Modrinth description
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: ./gradlew :velocity:modrinthSyncBody -Pdebug=${{ github.event.inputs.debug }}
+        run: ./gradlew :loader-velocity:modrinthSyncBody -Pdebug=${{ github.event.inputs.debug }}

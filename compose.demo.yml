@@ -27,6 +27,14 @@ services:
     networks:
       - hub
 
+  minestom:
+    image: ${HUB_MINESTOM_IMAGE:-ghcr.io/uebliche/hub-minestom:latest}
+    container_name: hub-demo-minestom
+    environment:
+      VELOCITY_FORWARDING_SECRET: ${VELOCITY_FORWARDING_SECRET:-secret}
+    networks:
+      - hub
+
 networks:
   hub:
     driver: bridge

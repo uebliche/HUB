@@ -1,0 +1,13 @@
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Copy Minestom FFA server and plugin (built by Gradle)
+COPY loader-minestom-ffa/build/libs/*.jar /app/minestom-ffa.jar
+COPY loader-minestom-ffa/build/libs/*.jar /app/plugins/hub-ffa.jar
+
+# Optional server properties
+COPY docker/ffalobby.server.properties /app/server.properties
+
+EXPOSE 25566
+
+ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "/app/minestom-ffa.jar"]

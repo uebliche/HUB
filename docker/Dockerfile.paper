@@ -1,0 +1,16 @@
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Copy Paper server and hub plugin (built by Gradle)
+COPY loader-paper/build/libs/*paper*.jar /app/paper.jar
+COPY loader-paper/build/libs/*paper*.jar /app/plugins/HUB.jar
+
+# Configs
+COPY docker/lobby.server.properties /app/server.properties
+COPY docker/plugins.hub/config.yml /app/plugins/HUB/config.yml
+
+RUN echo "eula=true" > /app/eula.txt
+
+EXPOSE 25565
+
+ENTRYPOINT ["java", "-Xms512m", "-Xmx1G", "-jar", "/app/paper.jar", "--nogui"]

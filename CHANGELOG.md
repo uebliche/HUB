@@ -1,4 +1,8 @@
 # Changelog
+## [2025-12-22-a] - 2025-12-22
+### Added
+- Dockerfiles for demo Velocity, Paper lobby, and Minestom FFA images.
+
 ## [1.1.1] - 2025-04-08
 ### Fixed
 - Missing Messages

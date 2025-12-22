@@ -1,0 +1,15 @@
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Copy Velocity jar and hub plugin (built by Gradle)
+COPY loader-velocity/build/libs/*velocity*.jar /app/velocity.jar
+COPY loader-velocity/build/libs/*velocity*.jar /app/plugins/hub.jar
+
+# Configs
+COPY docker/velocity.docker.toml /app/velocity.toml
+COPY docker/velocity.forwarding.secret /app/forwarding.secret
+COPY docker/plugins.hub /app/plugins/hub
+
+EXPOSE 25577
+
+ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "/app/velocity.jar", "-conf", "/app/velocity.toml", "-forwarding-secret-file", "/app/forwarding.secret"]

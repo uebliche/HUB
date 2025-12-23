@@ -40,6 +40,7 @@
       <div class="cb-main">
         <div class="cb-tabs" role="tablist" aria-label="Config sections">
           <button type="button" class="cb-tab is-active" data-tab="core" role="tab" aria-selected="true">Core settings</button>
+          <button type="button" class="cb-tab" data-tab="messages" role="tab" aria-selected="false">Messages</button>
           <button type="button" class="cb-tab" data-tab="finder" role="tab" aria-selected="false">Finder + Data collection</button>
           <button type="button" class="cb-tab" data-tab="lobbies" role="tab" aria-selected="false">Lobbies</button>
         </div>
@@ -56,8 +57,9 @@
               <small>Players use /hub to open the selector.</small>
             </label>
             <label class="cb-field">
-              <span title="Extra commands that also open the hub">Aliases (comma separated)</span>
-              <input id="cb-aliases" type="text" placeholder="lobby, leave">
+              <span title="Extra commands that also open the hub">Aliases</span>
+              <input id="cb-aliases" type="text" placeholder="lobby leave">
+              <small>Separate with spaces.</small>
             </label>
             <label class="cb-field cb-span-2">
               <span title="Regex for server names where /hub should be hidden">Hide base command on lobby (regex)</span>
@@ -85,58 +87,55 @@
               <input id="cb-debug-permission" type="text" placeholder="hub.debug">
             </label>
           </div>
-          <div class="cb-inline-test">
-            <label class="cb-field">
-              <span title="Test if the hide regex matches a server name">Test hide regex</span>
-              <input id="cb-hide-test" type="text" placeholder="lobby-1" list="cb-server-suggestions">
-            </label>
-            <div class="cb-pill" id="cb-hide-result" data-state="idle">Waiting for input</div>
+        </section>
+
+        <section class="cb-card cb-tab-panel" data-tab-panel="messages" style="--cb-delay: 0.06s;">
+          <div class="cb-card-head">
+            <h2>Messages</h2>
+            <p>Global and system message overrides.</p>
           </div>
-          <details class="cb-details">
-            <summary>Optional messages</summary>
-            <div class="cb-grid-2 cb-details-grid">
-              <label class="cb-field cb-span-2">
-                <span title="Message shown after successful hub transfer">Success message</span>
-                <textarea id="cb-message-success" rows="2"></textarea>
-              </label>
-              <label class="cb-field cb-span-2">
-                <span title="Message shown when already in a hub">Already connected message</span>
-                <textarea id="cb-message-already" rows="2"></textarea>
-              </label>
-              <label class="cb-field cb-span-2">
-                <span title="Message shown while connecting to a hub">Connection in progress message</span>
-                <textarea id="cb-message-progress" rows="2"></textarea>
-              </label>
-              <label class="cb-field cb-span-2">
-                <span title="Message shown if the target lobby server is offline">Server disconnected message</span>
-                <textarea id="cb-message-disconnected" rows="2"></textarea>
-              </label>
-              <label class="cb-field cb-span-2">
-                <span title="Message shown when a transfer is cancelled">Connection cancelled message</span>
-                <textarea id="cb-message-cancelled" rows="2"></textarea>
-              </label>
-              <label class="cb-field cb-span-2">
-                <span title="Message when console runs a player-only command">Players only command message</span>
-                <textarea id="cb-system-players-only" rows="2"></textarea>
-              </label>
-              <label class="cb-field cb-span-2">
-                <span title="Message when no lobby server can be found">No lobby found message</span>
-                <textarea id="cb-system-no-lobby" rows="2"></textarea>
-              </label>
-              <label class="cb-field">
-                <span title="Enable the kick message wrapper">Kick message enabled</span>
-                <input id="cb-kick-enabled" type="checkbox">
-              </label>
-              <label class="cb-field">
-                <span title="Prefix added before kick message">Kick prefix</span>
-                <input id="cb-kick-prefix" type="text">
-              </label>
-              <label class="cb-field">
-                <span title="Suffix added after kick message">Kick suffix</span>
-                <input id="cb-kick-suffix" type="text">
-              </label>
-            </div>
-          </details>
+          <div class="cb-grid-2 cb-details-grid">
+            <label class="cb-field cb-span-2">
+              <span title="Message shown after successful hub transfer">Success message</span>
+              <textarea id="cb-message-success" rows="2"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Message shown when already in a hub">Already connected message</span>
+              <textarea id="cb-message-already" rows="2"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Message shown while connecting to a hub">Connection in progress message</span>
+              <textarea id="cb-message-progress" rows="2"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Message shown if the target lobby server is offline">Server disconnected message</span>
+              <textarea id="cb-message-disconnected" rows="2"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Message shown when a transfer is cancelled">Connection cancelled message</span>
+              <textarea id="cb-message-cancelled" rows="2"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Message when console runs a player-only command">Players only command message</span>
+              <textarea id="cb-system-players-only" rows="2"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Message when no lobby server can be found">No lobby found message</span>
+              <textarea id="cb-system-no-lobby" rows="2"></textarea>
+            </label>
+            <label class="cb-field">
+              <span title="Enable the kick message wrapper">Kick message enabled</span>
+              <input id="cb-kick-enabled" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span title="Prefix added before kick message">Kick prefix</span>
+              <input id="cb-kick-prefix" type="text">
+            </label>
+            <label class="cb-field">
+              <span title="Suffix added after kick message">Kick suffix</span>
+              <input id="cb-kick-suffix" type="text">
+            </label>
+          </div>
         </section>
 
         <section class="cb-card cb-tab-panel" data-tab-panel="finder" style="--cb-delay: 0.07s;">
@@ -213,36 +212,48 @@
         </section>
 
         <section class="cb-card cb-regex-lab" style="--cb-delay: 0.2s;">
-      <div class="cb-card-head cb-regex-head">
-        <div>
-          <h2>Regex lab</h2>
-          <p>Quick sanity checks before you download.</p>
-        </div>
-        <button type="button" class="cb-btn cb-btn-ghost cb-regex-toggle" id="cb-regex-toggle" aria-expanded="true" aria-label="Minimize regex lab">
-          <svg class="cb-regex-icon cb-regex-icon-open" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 12h12M14 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <svg class="cb-regex-icon cb-regex-icon-closed" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20 12H8M10 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-      </div>
-      <div class="cb-regex-body">
-        <div class="cb-grid-2">
-        <label class="cb-field">
-          <span title="Regex pattern to test">Regex</span>
-          <input id="cb-regex-input" type="text" placeholder="(?i)^lobby.*">
-        </label>
-        <label class="cb-field">
-          <span title="Server name to test against the regex">Test string</span>
-          <input id="cb-regex-test" type="text" placeholder="lobby-eu-1" list="cb-server-suggestions">
-        </label>
-        </div>
-        <div class="cb-inline-test">
-          <div class="cb-pill" id="cb-regex-result" data-state="idle">Waiting for input</div>
-          <p class="cb-note">Checker runs in the browser. It supports (?i) at the start for case-insensitive matches.</p>
-        </div>
-      </div>
+          <div class="cb-card-head cb-regex-head">
+            <div>
+              <h2>Regex lab</h2>
+              <p>Quick sanity checks before you download.</p>
+            </div>
+            <button type="button" class="cb-btn cb-btn-ghost cb-regex-toggle" id="cb-regex-toggle" aria-expanded="true" aria-label="Minimize regex lab">
+              <svg class="cb-regex-icon cb-regex-icon-open" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 12h12M14 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="cb-regex-icon cb-regex-icon-closed" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 12H8M10 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="cb-regex-body">
+            <div class="cb-grid-2">
+              <label class="cb-field">
+                <span id="cb-regex-pattern-label" title="Regex pattern to test">Lobby regex</span>
+                <input id="cb-regex-input" type="text" placeholder="(?i)^lobby.*">
+              </label>
+              <label class="cb-field">
+                <span id="cb-regex-test-label" title="Server name to test against the regex">Test string</span>
+                <div class="cb-input-wrap">
+                  <input id="cb-regex-test" type="text" placeholder="lobby-eu-1" list="cb-server-suggestions">
+                  <span id="cb-regex-result" class="cb-input-icon" data-state="idle" aria-label="Waiting for input" title="Waiting for input">
+                    <svg class="cb-icon-idle" viewBox="0 0 20 20" aria-hidden="true">
+                      <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <svg class="cb-icon-ok" viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M5 10l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <svg class="cb-icon-bad" viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M6 6l8 8M14 6l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                </div>
+              </label>
+            </div>
+            <div class="cb-inline-test">
+              <p class="cb-note">Checker runs in the browser. It supports (?i) at the start for case-insensitive matches.</p>
+            </div>
+          </div>
         </section>
 
         <section class="cb-card" style="--cb-delay: 0.25s;">
@@ -257,7 +268,6 @@
           <pre id="cb-output" class="cb-output"></pre>
         </section>
       </div>
-
     </div>
   </div>
   </div>
@@ -506,10 +516,10 @@ onMounted(() => {
   const regexInput = document.getElementById('cb-regex-input');
   const regexTest = document.getElementById('cb-regex-test');
   const regexResult = document.getElementById('cb-regex-result');
+  const regexPatternLabel = document.getElementById('cb-regex-pattern-label');
+  const regexTestLabel = document.getElementById('cb-regex-test-label');
   const regexLab = document.querySelector('.cb-regex-lab');
   const regexToggle = document.getElementById('cb-regex-toggle');
-  const hideTest = document.getElementById('cb-hide-test');
-  const hideResult = document.getElementById('cb-hide-result');
   const summaryEl = document.getElementById('cb-summary');
   const activityList = document.getElementById('cb-activity-list');
   const activityEmpty = document.getElementById('cb-activity-empty');
@@ -530,9 +540,53 @@ onMounted(() => {
     || !copyBtn || !pasteArea || !pasteLoadBtn || !pasteClearBtn || !serverSuggestions || !lobbiesEl || !lobbiesListEl
     || !groupModal || !groupModalInput || !groupModalCreate || !groupModalCancel
     || !regexLab || !regexToggle
-    || !regexInput || !regexTest || !regexResult || !hideTest || !hideResult) {
+    || !regexInput || !regexTest || !regexResult) {
     return;
   }
+
+  let regexContext = 'lobby';
+  const regexTestCache = { lobby: '', hide: '' };
+
+  const setRegexContext = (tabId) => {
+    if (!regexInput || !regexTest || !regexResult) {
+      return;
+    }
+    let next = regexContext;
+    if (tabId === 'core') {
+      next = 'hide';
+    } else if (tabId === 'lobbies') {
+      next = 'lobby';
+    }
+    if (next === regexContext) {
+      return;
+    }
+    regexTestCache[regexContext] = regexTest.value;
+    regexContext = next;
+    if (regexContext === 'hide') {
+      if (regexPatternLabel) {
+        regexPatternLabel.textContent = 'Hide regex';
+      }
+      regexInput.value = inputs.hideOn.value || '';
+      regexTest.placeholder = 'lobby-1';
+      regexTest.value = regexTestCache.hide || '';
+    } else {
+      if (regexPatternLabel) {
+        regexPatternLabel.textContent = 'Lobby regex';
+      }
+      const filter = activeLobby && typeof activeLobby.filter === 'string' ? activeLobby.filter : '';
+      regexInput.value = filter;
+      regexTest.placeholder = 'lobby-eu-1';
+      if (regexTestCache.lobby) {
+        regexTest.value = regexTestCache.lobby;
+      } else if (filter) {
+        const match = findServerForFilter(filter);
+        regexTest.value = match || (activeLobby?.name || '');
+      } else {
+        regexTest.value = '';
+      }
+    }
+    updateRegexResult(regexInput.value, regexTest.value, regexResult);
+  };
 
   const setActiveTab = (tabId) => {
     if (!tabId) {
@@ -547,16 +601,8 @@ onMounted(() => {
     tabPanels.forEach((panel) => {
       panel.classList.toggle('is-active', panel.dataset.tabPanel === tabId);
     });
+    setRegexContext(tabId);
   };
-
-  if (tabButtons.length && tabPanels.length) {
-    setActiveTab(tabButtons[0].dataset.tab);
-    tabButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        setActiveTab(button.dataset.tab);
-      });
-    });
-  }
 
   const inputs = {
     baseCommand: document.getElementById('cb-base-command'),
@@ -625,6 +671,15 @@ onMounted(() => {
     historyLimit: 8
   };
   const userStatus = new Map();
+
+  if (tabButtons.length && tabPanels.length) {
+    setActiveTab(tabButtons[0].dataset.tab);
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        setActiveTab(button.dataset.tab);
+      });
+    });
+  }
 
   function showStatus(text, tone) {
     statusEl.textContent = text;
@@ -2597,13 +2652,24 @@ onMounted(() => {
       .filter(Boolean);
   }
 
+  function parseAliasList(value) {
+    return value
+      .split(/\s+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
   function listToText(list) {
     return Array.isArray(list) ? list.join(', ') : '';
   }
 
+  function aliasListToText(list) {
+    return Array.isArray(list) ? list.join(' ') : '';
+  }
+
   function applyConfigToForm() {
     inputs.baseCommand.value = config['base-hub-command'] || '';
-    inputs.aliases.value = listToText(config.aliases);
+    inputs.aliases.value = aliasListToText(config.aliases);
     inputs.hideOn.value = config['hide-hub-command-on-lobby'] || '';
     inputs.autoJoin.checked = Boolean(config['auto-select']?.['on-join']);
     inputs.autoKick.checked = Boolean(config['auto-select']?.['on-server-kick']);
@@ -2631,6 +2697,7 @@ onMounted(() => {
     inputs.dataCollectUsers.value = config['data-collection']?.['max-users'] ?? '';
     inputs.dataCollectServers.value = config['data-collection']?.['max-servers'] ?? '';
     updateHideRegexStatus();
+    setRegexContext(tabButtons.find((btn) => btn.classList.contains('is-active'))?.dataset.tab);
   }
 
   function updateOutput() {
@@ -2728,7 +2795,7 @@ onMounted(() => {
   }
 
   function syncRegexLabWithLobby(lobby, options = {}) {
-    if (!lobby || !regexInput || !regexTest || !regexResult) {
+    if (regexContext !== 'lobby' || !lobby || !regexInput || !regexTest || !regexResult) {
       return;
     }
     const filter = typeof lobby.filter === 'string' ? lobby.filter : '';
@@ -2743,30 +2810,38 @@ onMounted(() => {
   function updateRegexResult(pattern, value, resultEl) {
     const cleanedPattern = pattern.trim();
     if (!cleanedPattern) {
-      resultEl.textContent = 'Enter a regex';
       resultEl.dataset.state = 'idle';
+      resultEl.setAttribute('aria-label', 'Enter a regex');
+      resultEl.setAttribute('title', 'Enter a regex');
       return;
     }
     let regex;
     try {
       regex = buildRegex(cleanedPattern);
     } catch (error) {
-      resultEl.textContent = 'Invalid regex';
       resultEl.dataset.state = 'bad';
+      resultEl.setAttribute('aria-label', 'Invalid regex');
+      resultEl.setAttribute('title', 'Invalid regex');
       return;
     }
     if (!value.trim()) {
-      resultEl.textContent = 'Enter a test string';
       resultEl.dataset.state = 'idle';
+      resultEl.setAttribute('aria-label', 'Enter a test string');
+      resultEl.setAttribute('title', 'Enter a test string');
       return;
     }
     const match = regex ? regex.test(value) : false;
-    resultEl.textContent = match ? 'Match' : 'No match';
     resultEl.dataset.state = match ? 'ok' : 'bad';
+    resultEl.setAttribute('aria-label', match ? 'Match' : 'No match');
+    resultEl.setAttribute('title', match ? 'Match' : 'No match');
   }
 
   function updateHideRegexStatus() {
-    updateRegexResult(inputs.hideOn.value, hideTest.value, hideResult);
+    if (regexContext !== 'hide') {
+      return;
+    }
+    regexInput.value = inputs.hideOn.value || '';
+    updateRegexResult(regexInput.value, regexTest.value, regexResult);
   }
 
   function deriveGroupParent(group) {
@@ -3364,16 +3439,6 @@ onMounted(() => {
         <div class="cb-mini-head">
           <h3 data-role="title">Lobby ${index + 1}</h3>
           <div class="cb-mini-actions">
-            <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" data-action="move-up" aria-label="Move lobby up" title="Move lobby up">
-              <svg class="cb-move-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 14l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" data-action="move-down" aria-label="Move lobby down" title="Move lobby down">
-              <svg class="cb-move-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
             <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" data-action="duplicate" aria-label="Duplicate lobby" title="Duplicate lobby">
               <svg class="cb-duplicate-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="9" y="9" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -3390,30 +3455,36 @@ onMounted(() => {
             </button>
           </div>
         </div>
-        <div class="cb-grid-2">
-          <label class="cb-field">
-            <span title="Internal lobby name">Name</span>
-            <input type="text" data-field="name">
-          </label>
-          <label class="cb-field">
-            <span title="Regex that matches server names for this lobby">Filter regex</span>
-            <input type="text" data-field="filter">
-          </label>
-          <label class="cb-field">
-            <span title="Permission required to access this lobby">Permission</span>
-            <input type="text" data-field="permission">
-          </label>
-          <label class="cb-field">
-            <span title="Higher priority lobbies are preferred">Priority</span>
-            <input type="number" data-field="priority" min="-10" max="100" step="1">
-          </label>
-          <label class="cb-field">
-            <span title="Allow autojoin to this lobby">Autojoin flag</span>
-            <input type="checkbox" data-field="autojoin">
-          </label>
+        <div class="cb-subtabs" role="tablist" aria-label="Lobby sections">
+          <button type="button" class="cb-subtab is-active" data-subtab="details" aria-selected="true">Details</button>
+          <button type="button" class="cb-subtab" data-subtab="commands" aria-selected="false">Commands</button>
+          <button type="button" class="cb-subtab" data-subtab="messages" aria-selected="false">Messages</button>
         </div>
-        <details class="cb-details cb-command-section">
-          <summary>Commands</summary>
+        <div class="cb-subtab-panel is-active" data-subtab-panel="details">
+          <div class="cb-grid-2">
+            <label class="cb-field">
+              <span title="Internal lobby name">Name</span>
+              <input type="text" data-field="name">
+            </label>
+            <label class="cb-field">
+              <span title="Regex that matches server names for this lobby">Filter regex</span>
+              <input type="text" data-field="filter">
+            </label>
+            <label class="cb-field">
+              <span title="Permission required to access this lobby">Permission</span>
+              <input type="text" data-field="permission">
+            </label>
+            <label class="cb-field">
+              <span title="Higher priority lobbies are preferred">Priority</span>
+              <input type="number" data-field="priority" min="-10" max="100" step="1">
+            </label>
+            <label class="cb-field">
+              <span title="Allow autojoin to this lobby">Autojoin flag</span>
+              <input type="checkbox" data-field="autojoin">
+            </label>
+          </div>
+        </div>
+        <div class="cb-subtab-panel" data-subtab-panel="commands">
           <div class="cb-grid-2 cb-command-block">
             <label class="cb-field">
               <span title="Command that targets this lobby">Command name</span>
@@ -3433,42 +3504,64 @@ onMounted(() => {
               <input type="text" data-field="commandHide" placeholder="^(?!.*).$">
             </label>
           </div>
-        </details>
-      <p class="cb-note">First command is editable here. Extra commands stay untouched.</p>
-      <details class="cb-details cb-override">
-        <summary>Override messages</summary>
-        <div class="cb-grid-2 cb-details-grid">
-          <label class="cb-field cb-span-2">
-            <span title="Override for success message (this lobby only)">Success message</span>
-            <textarea rows="2" data-field="ovSuccess"></textarea>
-          </label>
-          <label class="cb-field cb-span-2">
-            <span title="Override for already connected message">Already connected message</span>
-            <textarea rows="2" data-field="ovAlready"></textarea>
-          </label>
-          <label class="cb-field cb-span-2">
-            <span title="Override for connection in progress message">Connection in progress message</span>
-            <textarea rows="2" data-field="ovProgress"></textarea>
-          </label>
-          <label class="cb-field cb-span-2">
-            <span title="Override for server disconnected message">Server disconnected message</span>
-            <textarea rows="2" data-field="ovDisconnected"></textarea>
-          </label>
-          <label class="cb-field cb-span-2">
-            <span title="Override for connection cancelled message">Connection cancelled message</span>
-            <textarea rows="2" data-field="ovCancelled"></textarea>
-          </label>
+          <p class="cb-note">First command is editable here. Extra commands stay untouched.</p>
         </div>
-        <p class="cb-footnote">Leave empty to inherit the global message.</p>
-      </details>
+        <div class="cb-subtab-panel" data-subtab-panel="messages">
+          <div class="cb-grid-2 cb-details-grid">
+            <label class="cb-field cb-span-2">
+              <span title="Override for success message (this lobby only)">Success message</span>
+              <textarea rows="2" data-field="ovSuccess"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Override for already connected message">Already connected message</span>
+              <textarea rows="2" data-field="ovAlready"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Override for connection in progress message">Connection in progress message</span>
+              <textarea rows="2" data-field="ovProgress"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Override for server disconnected message">Server disconnected message</span>
+              <textarea rows="2" data-field="ovDisconnected"></textarea>
+            </label>
+            <label class="cb-field cb-span-2">
+              <span title="Override for connection cancelled message">Connection cancelled message</span>
+              <textarea rows="2" data-field="ovCancelled"></textarea>
+            </label>
+          </div>
+          <p class="cb-footnote">Leave empty to inherit the global message.</p>
+        </div>
     `;
 
       const title = card.querySelector('[data-role="title"]');
       const removeBtn = card.querySelector('[data-action="remove"]');
       const duplicateBtn = card.querySelector('[data-action="duplicate"]');
-      const moveUpBtn = card.querySelector('[data-action="move-up"]');
-      const moveDownBtn = card.querySelector('[data-action="move-down"]');
+      const subTabs = Array.from(card.querySelectorAll('[data-subtab]'));
+      const subPanels = Array.from(card.querySelectorAll('[data-subtab-panel]'));
       enhanceHints(card);
+
+      const setSubTab = (subtabId) => {
+        if (!subtabId) {
+          return;
+        }
+        subTabs.forEach((button) => {
+          const active = button.dataset.subtab === subtabId;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        subPanels.forEach((panel) => {
+          panel.classList.toggle('is-active', panel.dataset.subtabPanel === subtabId);
+        });
+      };
+
+      if (subTabs.length && subPanels.length) {
+        setSubTab(subTabs[0].dataset.subtab);
+        subTabs.forEach((button) => {
+          button.addEventListener('click', () => {
+            setSubTab(button.dataset.subtab);
+          });
+        });
+      }
 
       const fields = {
         name: card.querySelector('[data-field="name"]'),
@@ -3513,7 +3606,7 @@ onMounted(() => {
     title.textContent = lobby.name ? lobby.name : `Lobby ${index + 1}`;
 
     card.addEventListener('click', (event) => {
-      if (event.target.closest('[data-action="remove"], [data-action="duplicate"], [data-action="move-up"], [data-action="move-down"]')) {
+      if (event.target.closest('[data-action="remove"], [data-action="duplicate"]')) {
         return;
       }
       activeLobby = lobby;
@@ -3571,35 +3664,6 @@ onMounted(() => {
         lobby.priority = Number.isFinite(value) ? value : 0;
         commitChange();
       });
-
-      const moveLobby = (delta) => {
-        const nextIndex = index + delta;
-        if (nextIndex < 0 || nextIndex >= config.lobbies.length) {
-          return;
-        }
-        const copy = config.lobbies.slice();
-        const [item] = copy.splice(index, 1);
-        copy.splice(nextIndex, 0, item);
-        config.lobbies = copy;
-        renderLobbies();
-        commitChange();
-      };
-
-      if (moveUpBtn) {
-        moveUpBtn.disabled = index === 0;
-        moveUpBtn.addEventListener('click', (event) => {
-          event.stopPropagation();
-          moveLobby(-1);
-        });
-      }
-
-      if (moveDownBtn) {
-        moveDownBtn.disabled = index === config.lobbies.length - 1;
-        moveDownBtn.addEventListener('click', (event) => {
-          event.stopPropagation();
-          moveLobby(1);
-        });
-      }
 
       fields.autojoin.addEventListener('change', () => {
         lobby.autojoin = fields.autojoin.checked;
@@ -3879,15 +3943,17 @@ onMounted(() => {
       commitChange();
     });
     inputs.aliases.addEventListener('input', () => {
-      config.aliases = parseList(inputs.aliases.value);
+      config.aliases = parseAliasList(inputs.aliases.value);
       commitChange();
+    });
+    inputs.aliases.addEventListener('blur', () => {
+      inputs.aliases.value = aliasListToText(config.aliases);
     });
     inputs.hideOn.addEventListener('input', () => {
       config['hide-hub-command-on-lobby'] = inputs.hideOn.value;
       updateHideRegexStatus();
       commitChange();
     });
-    hideTest.addEventListener('input', updateHideRegexStatus);
     inputs.autoJoin.addEventListener('change', () => {
       config['auto-select'] = config['auto-select'] || {};
       config['auto-select']['on-join'] = inputs.autoJoin.checked;
@@ -4022,8 +4088,13 @@ onMounted(() => {
       commitChange();
     });
 
-  regexInput.addEventListener('input', () => updateRegexResult(regexInput.value, regexTest.value, regexResult));
-  regexTest.addEventListener('input', () => updateRegexResult(regexInput.value, regexTest.value, regexResult));
+  regexInput.addEventListener('input', () => {
+    updateRegexResult(regexInput.value, regexTest.value, regexResult);
+  });
+  regexTest.addEventListener('input', () => {
+    regexTestCache[regexContext] = regexTest.value;
+    updateRegexResult(regexInput.value, regexTest.value, regexResult);
+  });
 
   const regexStorageKey = 'hub-regex-lab-collapsed';
   const storedRegexState = window.localStorage.getItem(regexStorageKey);

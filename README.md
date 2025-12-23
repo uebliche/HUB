@@ -13,6 +13,15 @@ This project is a **Hub Plugin** for your network. It runs on Velocity (primary)
 - Configurable commands and MiniMessage placeholders.
 - Debug toolkit (`/hub debug`) and Modrinth update checks.
 
+## Config Builder (Web)
+Use the web-based config editor to build configs without touching YAML:
+https://hub.uebliche.info/
+
+What it gives you:
+- Visual editor for lobbies, regex, commands, and groups.
+- Drag and drop grouping for parent groups.
+- Download a ready-to-use `config.yml`.
+
 ## Tested Versions
 
 <!-- tested_versions:start -->
@@ -46,6 +55,8 @@ This project is a **Hub Plugin** for your network. It runs on Velocity (primary)
    - Drop the JAR into the `plugins` directory of your Velocity server and restart once.
 4. **Configure**
    - Inspect the generated `plugins/hub/config.yml` (Velocity) or platform equivalent and adjust it to your network. Reload with `/hub debug reload` or restart the proxy after changes.
+5. **Optional: Use the Config Builder**
+   - Open https://hub.uebliche.info/, upload or paste your config, edit, then download the updated YAML.
 
 ## Commands
 
@@ -90,173 +101,12 @@ All options live inside `plugins/hub/config.yml` (Velocity) and are automaticall
 - `finder`: Tunes the ping cache. `refresh-interval-in-ticks` defines how often every matching server is pinged, while `start-duration` and `max-duration` are ping timeouts.
 - `update-checker`: Enables the Modrinth update task. `notification` is used both as the permission and MiniMessage string when an update is available. `check-interval-in-min` defines the polling cadence.
 
-### Example Configuration
-
-```yaml
-# Thanks <3
-
-debug:
-  enabled: false
-  permission: hub.debug
-messages:
-  success-message: <#69d9ff>You are now in the <i>Hub</i>.
-  already-connected-message: <#ff614d>You are already on the <i>Hub</i>.
-  connection-in-progress-message: <#ff9c59>In Progress...
-  server-disconnected-message: <#ff614d>The Lobby Server is Offline...
-  connection-cancelled-message: <#ff614d>Transfer cancelled.
-system-messages:
-  players-only-command-message: <#ff9c59>This Command is only available to Players.
-  no-lobby-found-message: <#ff9c59>I'm sorry! i was unable to find a Lobby Server for you.
-kick-message:
-  enabled: true
-  prefix: <red>
-  suffix: ''
-base-hub-command: hub
-aliases:
-  - lobby
-  - leave
-hide-hub-command-on-lobby: ^(?!.*).$
-auto-select:
-  on-join: true
-  on-server-kick: true
-lobby-groups:
-  - name: main
-    lobbies: [lobby, teamlobby, premiumlobby]
-  - name: minigame
-    lobbies: [ffa-lobby]
-lobbies:
-  - name: teamlobby
-    filter: (?i)^teamlobby.*
-    permission: hub.team
-    priority: 2
-    parent-groups: [main]
-    commands:
-      teamlobby:
-        standalone: false
-        subcommand: true
-        hide-on: ^(?!.*).$
-    autojoin: false
-    overwrite-messages: {}
-  - name: premiumlobby
-    filter: (?i)^premiumlobby.*
-    permission: hub.premium
-    priority: 1
-    parent-groups: [main]
-    commands:
-      premiumlobby:
-        standalone: true
-        subcommand: false
-        hide-on: ^(?!.*).$
-    autojoin: true
-    overwrite-messages:
-      success-message: <#69d9ff>You are now in the <b>Premium Hub</b>.
-  - name: ffa-lobby
-    filter: (?i)^lobby-minestom.*
-    permission: ''
-    priority: 0
-    parent-groups: [main]
-    commands:
-      ffa:
-        standalone: false
-        subcommand: true
-        hide-on: ^(?!.*).$
-    autojoin: true
-    overwrite-messages: {}
-  - name: lobby
-    filter: (?i)^lobby.*
-    permission: ''
-    priority: 0
-    commands:
-      base:
-        standalone: false
-        subcommand: true
-        hide-on: ^(?!.*).$
-    autojoin: true
-    overwrite-messages: {}
-placeholder:
-  server:
-    example: lobby-1
-    key: server
-    enabled: true
-  server-host:
-    example: 127.0.0.1
-    key: server-host
-    enabled: false
-  server-port:
-    example: '25565'
-    key: server-port
-    enabled: false
-  server-player-count:
-    example: '0'
-    key: server-player-count
-    enabled: true
-  server-player-per-player-username:
-    example: apitoken
-    key: server-player-%i-username
-    enabled: false
-    placeholder: '%i'
-  server-player-per-player-uuid:
-    example: f9de374c-cb78-4c5c-aa2f-4a53ae981f9d
-    key: server-player-%i-uuid
-    enabled: false
-    placeholder: '%i'
-  lobby:
-    example: lobby
-    key: lobby
-    enabled: true
-  lobby-filter:
-    example: (?i)^lobby.*
-    key: lobby-filter
-    enabled: false
-  lobby-require-permission:
-    example: 'true'
-    key: lobby-require-permission
-    enabled: false
-  lobby-permission:
-    example: hub.user
-    key: lobby-permission
-    enabled: true
-  lobby-priority:
-    example: '0'
-    key: lobby-priority
-    enabled: false
-  lobby-command-per-command-standalone:
-    example: 'true'
-    key: lobby-command-%s-standalone
-    enabled: false
-  lobby-command-per-command-subcommand:
-    example: 'true'
-    key: lobby-command-%s-subcommand
-    enabled: false
-  lobby-command-per-command-hide-on:
-    example: ^(?!.*).$
-    key: lobby-command-%s-hide-on
-    enabled: false
-  lobby-autojoin:
-    example: 'true'
-    key: lobby-autojoin
-    enabled: false
-  player:
-    example: Freddiio
-    key: player
-    enabled: true
-  player-uuid:
-    example: c5eb5df7-b7a9-4919-a9bc-7f59c8bee980
-    key: player-uuid
-    enabled: false
-finder:
-  start-duration: 20
-  increment-duration: 20
-  max-duration: 200
-  refresh-interval-in-ticks: 40
-update-checker:
-  enabled: true
-  notification: hub.update
-  check-interval-in-min: 360
-  notification-message: |
-    An update is available! Latest version: <latest>, you are using: <current>
-    Download it at https://modrinth.com/plugin/hub/version/<latest>
-```
+## How-to Recipes
+- Add a new lobby: create a new lobby entry, set `filter`, `permission`, and `priority`, then (optional) add a command.
+- Create lobby groups: define a group with `name` and `lobbies`, then use `parent-group` to nest groups.
+- Set parent fallbacks: add `parent` for a single parent lobby or `parent-groups` for group-based fallbacks.
+- Hide /hub on certain servers: set `hide-hub-command-on-lobby` to a regex that matches server names.
+- Enable update notifications: set `update-checker.enabled` to true and add a permission string in `notification`.
 
 ### Placeholder Reference
 

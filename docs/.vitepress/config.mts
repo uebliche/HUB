@@ -4,7 +4,7 @@ import {withMermaid} from 'vitepress-plugin-mermaid'
 export default withMermaid(defineConfig({
     title: 'HUB',
     description: 'Velocity lobby plugin with smart routing',
-    base: '/HUB/',
+    base: '/',
     cleanUrls: true,
     head: [],
     markdown: {

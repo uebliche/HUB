@@ -30,7 +30,7 @@ tasks.runVelocity {
 tasks.jar {
     archiveBaseName.set('hub')
     def targetVersion = (project.velocityVersion ?: 'unknown').toString()
-    def sanitizedVersion = targetVersion.replaceAll("[^A-Za-z0-9._-]", "-")
+    def sanitizedVersion = targetVersion.replaceAll("[^A-Za-z0-9._-]", "-").replace('.', '-')
     archiveClassifier.set("velocity-${sanitizedVersion}")
     from(project(':common').sourceSets.main.output)
 }
@@ -41,7 +41,7 @@ modrinth {
     token = System.getenv("MODRINTH_API_TOKEN") ?: System.getenv("MODRINTH_TOKEN")
     projectId = "HrTclB8n"
     def modrinthVersion = rootProject.version?.toString()?.replaceFirst(/^(\\d{4})\\.(\\d{2})\\.(\\d{2})/, '$1-$2-$3')
-    version = modrinthVersion
+    versionNumber = modrinthVersion
     changelog = System.getenv("CHANGELOG") ?: getChangelog()
     versionType = rootProject.versionType
     uploadFile = jar

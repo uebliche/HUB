@@ -3,7 +3,6 @@ name: Deploy Docs
 on:
   push:
     branches:
-      - main
       - master
 
 permissions:

@@ -33,9 +33,11 @@ lobby-groups:
   - lobby
   - teamlobby
   - premiumlobby
+  parent-group: ''
 - name: minigame
   lobbies:
   - ffa-lobby
+  parent-group: ''
 lobbies:
 - name: teamlobby
   filter: (?i)^teamlobby.*
@@ -169,6 +171,10 @@ finder:
   increment-duration: 20
   max-duration: 200
   refresh-interval-in-ticks: 40
+update-checker:
+  enabled: true
+  notification: ''
+  check-interval-in-min: 30
 data-collection:
   enabled: true
   dump-file: data-dump.yml
@@ -176,7 +182,3 @@ data-collection:
   max-users: 500
   max-servers: 500
   include-uuid: true
-update-checker:
-  enabled: true
-  notification: ''
-  check-interval-in-min: 30

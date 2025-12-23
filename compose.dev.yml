@@ -9,7 +9,6 @@ services:
       - ./:/workspace
       # Use a Docker-specific Velocity config pointing to the limbo services
       - ./docker/velocity.docker.toml:/workspace/loader-velocity/run/velocity.toml
-      - ./docker/velocity.forwarding.secret:/workspace/loader-velocity/run/forwarding.secret
       - ./docker/plugins.hub:/workspace/loader-velocity/run/plugins/hub
     environment:
       GRADLE_USER_HOME: /gradle-cache/velocity
@@ -29,6 +28,8 @@ services:
         # reset plugin configs to defaults each run
         rm -f /workspace/loader-velocity/run/plugins/hub/config.yml
         touch /workspace/loader-velocity/run/plugins/hub/data-dump.yml
+        mkdir -p /workspace/loader-velocity/run
+        cp /workspace/docker/velocity.forwarding.secret /workspace/loader-velocity/run/forwarding.secret
         rm -rf /workspace/common/build /workspace/loader-velocity/build
         rm -rf /gradle-cache/velocity/caches/fabric-loom
         "$$tmp" --gradle-user-home /gradle-cache/velocity --project-cache-dir /gradle-cache/velocity-project :loader-velocity:runVelocity --no-daemon
@@ -66,6 +67,8 @@ services:
         mkdir -p /gradle-cache/paper
         # reset plugin configs to defaults each run
         rm -f /workspace/loader-paper/run/plugins/HUB/config.yml
+        mkdir -p /workspace/loader-paper/run
+        echo "eula=true" > /workspace/loader-paper/run/eula.txt
         rm -rf /workspace/common/build /workspace/loader-paper/build
         rm -rf /gradle-cache/paper/caches/fabric-loom
         "$$tmp" --gradle-user-home /gradle-cache/paper --project-cache-dir /gradle-cache/paper-project :loader-paper:runServer --no-daemon
@@ -121,6 +124,8 @@ services:
         mkdir -p /gradle-cache/fabric
         # reset plugin configs to defaults each run
         rm -f /workspace/loader-fabric/run/config/hub.yaml
+        mkdir -p /workspace/loader-fabric/run
+        echo "eula=true" > /workspace/loader-fabric/run/eula.txt
         rm -rf /workspace/common/build /workspace/loader-fabric/build
         rm -rf /gradle-cache/fabric/caches/fabric-loom
         "$$tmp" --gradle-user-home /gradle-cache/fabric --project-cache-dir /gradle-cache/fabric-project :loader-fabric:runServer --no-daemon

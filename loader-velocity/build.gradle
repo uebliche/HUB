@@ -40,7 +40,8 @@ tasks.jar {
 modrinth {
     token = System.getenv("MODRINTH_API_TOKEN") ?: System.getenv("MODRINTH_TOKEN")
     projectId = "HrTclB8n"
-    version = rootProject.version
+    def modrinthVersion = rootProject.version?.toString()?.replaceFirst(/^(\\d{4})\\.(\\d{2})\\.(\\d{2})/, '$1-$2-$3')
+    version = modrinthVersion
     changelog = System.getenv("CHANGELOG") ?: getChangelog()
     versionType = rootProject.versionType
     uploadFile = jar

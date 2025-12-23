@@ -166,7 +166,20 @@ public class DebugCommand {
                                     return 1;
                                 })
                         )
-                );
+                )
+                .then(BrigadierCommand.literalArgumentBuilder("data-dump")
+                        .requires(commandSource -> (commandSource instanceof Player player && Utils.util(PlayerUtils.class).canDebug(player))
+                                || commandSource instanceof ConsoleCommandSource)
+                        .executes(commandContext -> {
+                            var dataCollector = Utils.util(DataCollector.class);
+                            if (dataCollector == null) {
+                                messageUtils.sendDebugCommandMessage(commandContext.getSource(), "❌ Data collection is not available.");
+                                return 0;
+                            }
+                            dataCollector.dumpNow();
+                            messageUtils.sendDebugCommandMessage(commandContext.getSource(), "<green>✔ Data dump written.</green>");
+                            return 1;
+                        }));
     }
 
 }

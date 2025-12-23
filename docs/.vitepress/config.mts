@@ -15,6 +15,7 @@ export default withMermaid(defineConfig({
             {text: 'Home', link: '/'},
             {text: 'Getting Started', link: '/getting-started'},
             {text: 'Configuration', link: '/configuration'},
+            {text: 'Config Builder', link: '/config-builder'},
             {text: 'Debug Toolkit', link: '/debug-tools'}
         ],
 
@@ -24,6 +25,7 @@ export default withMermaid(defineConfig({
                 items: [
                     {text: 'Getting Started', link: '/getting-started'},
                     {text: 'Configuration', link: '/configuration'},
+                    {text: 'Config Builder', link: '/config-builder'},
                     {text: 'Debug Toolkit', link: '/debug-tools'}
                 ]
             }

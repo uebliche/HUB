@@ -102,12 +102,12 @@ last-lobby:
 
 ```mermaid
 flowchart TD
-    A[Player joins / uses /hub / is kicked] --> B{last-lobby enabled?}
-    B -- no --> F[Normal lobby selection (priority + ping cache)]
-    B -- yes --> C{Remembered lobby still allowed & online?}
-    C -- yes --> D[Pick remembered server (exact server name)]
-    C -- no --> F
-    D --> E[Connect player]
+    A["Player joins, uses /hub, or is kicked"] --> B{"last-lobby enabled?"}
+    B -- "no" --> F["Normal lobby selection (priority + ping cache)"]
+    B -- "yes" --> C{"Remembered lobby still allowed & online?"}
+    C -- "yes" --> D["Pick remembered server (exact server name)"]
+    C -- "no" --> F
+    D --> E["Connect player"]
     F --> E
 ```
 
@@ -157,6 +157,29 @@ finder:
 - `start-duration` & `max-duration`: Used as ping timeouts (in milliseconds). The code currently clamps the timeout to
   `max(start-duration, max-duration, 50)`.
 - `increment-duration`: Reserved for future adaptive timeouts.
+
+## Data Collection (Analysis Dump)
+
+```yaml
+data-collection:
+  enabled: true
+  dump-file: data-dump.yml
+  dump-interval-minutes: 10
+  max-users: 500
+  max-servers: 500
+  include-uuid: true
+```
+
+- `enabled`: When true, HUB writes a periodic data dump with observed server names and users.
+- `dump-file`: File name (relative to the plugin data folder) where the dump is written.
+- `dump-interval-minutes`: How often to write the dump (minimum 1 minute).
+- `max-users` / `max-servers`: Limits stored in the dump (oldest entries are dropped).
+- `include-uuid`: Include player UUIDs in the dump. Leave false if you only want names.
+
+The dump records only permission nodes used by HUB (lobby permission checks) that the player had at runtime. It does not
+list every permission from your permissions plugin.
+
+You can trigger a manual write with `/hub debug data-dump`.
 
 ## Update Checker
 

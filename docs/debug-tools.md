@@ -17,6 +17,7 @@ without restarting the proxy.
 | `reload` | Reload `config.yml`, resort lobbies, and re-register commands. Errors are printed to the invoker. |
 | `messages` | Preview every global message and lobby override using live placeholder data. Useful for MiniMessage tweaks. |
 | `placeholders <lobby> <server>` | Dump every enabled placeholder for the given lobby/server pair. Picks values from the ping cache, so run `/hub debug reload` if the cache is stale. |
+| `data-dump` | Write the runtime data dump immediately (see Data Collection in the configuration guide). |
 
 Each previewed message is sent back to the invoker prefixed by `[Debug]:` and can be safely copied into the config file.
 

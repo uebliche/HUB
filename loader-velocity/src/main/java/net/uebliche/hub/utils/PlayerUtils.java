@@ -18,7 +18,12 @@ public class PlayerUtils extends Utils<PlayerUtils> {
     public boolean permissionCheck(Player player, Lobby lobby) {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
         messageUtils.sendDebugMessage(player, "🔎 Checking if user can join " + lobby.name);
-        if (lobby.permission.isBlank() || player.hasPermission(lobby.permission)) {
+        boolean allowed = lobby.permission.isBlank() || player.hasPermission(lobby.permission);
+        DataCollector dataCollector = Utils.util(DataCollector.class);
+        if (dataCollector != null) {
+            dataCollector.recordPermission(player, lobby.permission, allowed);
+        }
+        if (allowed) {
             messageUtils.sendDebugMessage(player, "<green>✔ User has Permission to join " + lobby.name + ".");
             return true;
         } else {

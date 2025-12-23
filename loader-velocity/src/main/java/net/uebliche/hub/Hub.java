@@ -59,6 +59,7 @@ public class Hub {
         new MessageUtils(this);
         new LobbyUtils(this);
         new LastLobbyTracker(this);
+        new DataCollector(this, dataDirectory);
         server.getChannelRegistrar().register(HUB_CHANNEL);
         try {
             Utils.util(ConfigUtils.class).reload();
@@ -222,6 +223,12 @@ public class Hub {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
         messageUtils.sendDebugMessage(event.getPlayer(), "<gray>PlayerChooseInitialServerEvent triggered (initial="
                 + event.getInitialServer().map(s -> s.getServerInfo().getName()).orElse("<none>") + ")</gray>");
+        DataCollector dataCollector = Utils.util(DataCollector.class);
+        if (dataCollector != null) {
+            dataCollector.recordPlayer(event.getPlayer());
+            event.getInitialServer().ifPresent(server ->
+                    dataCollector.recordServer(server.getServerInfo().getName()));
+        }
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
         if (configUtils.config().autoSelect.onJoin) {
             var lobbyUtils = Utils.util(LobbyUtils.class);
@@ -251,14 +258,19 @@ public class Hub {
         var messageUtils = Utils.util(MessageUtils.class);
         var playerUtils = Utils.util(PlayerUtils.class);
         var lastLobbyTracker = Utils.util(LastLobbyTracker.class);
+        var dataCollector = Utils.util(DataCollector.class);
         if (configUtils == null || messageUtils == null || playerUtils == null || lastLobbyTracker == null) {
-            return;
-        }
-        if (!configUtils.config().lastLobby.enabled) {
             return;
         }
         var server = event.getServer();
         var player = event.getPlayer();
+        if (dataCollector != null) {
+            dataCollector.recordPlayer(player);
+            dataCollector.recordServer(server.getServerInfo().getName());
+        }
+        if (!configUtils.config().lastLobby.enabled) {
+            return;
+        }
         configUtils.config().lobbies.stream()
                 .filter(lobby -> lobby.filter.matcher(server.getServerInfo().getName()).matches())
                 .filter(lobby -> playerUtils.permissionCheck(player, lobby))

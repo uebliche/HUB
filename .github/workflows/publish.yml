@@ -189,42 +189,6 @@ jobs:
           fi
           ./gradlew clean "${tasks[@]}" -Ptag="$TAG" -Pversion_type="$VERSION_TYPE" -Pdebug="$DEBUG_BUILD"
 
-      - name: Log in to GitHub Container Registry
-        if: ${{ github.event.inputs.publish_velocity == 'true' || github.event.inputs.publish_paper == 'true' || github.event.inputs.publish_fabric == 'true' || github.event.inputs.publish_neoforge == 'true' || github.event.inputs.publish_minestom == 'true' }}
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker images
-        if: ${{ github.event.inputs.publish_velocity == 'true' || github.event.inputs.publish_paper == 'true' || github.event.inputs.publish_fabric == 'true' || github.event.inputs.publish_neoforge == 'true' || github.event.inputs.publish_minestom == 'true' }}
-        env:
-          TAG: ${{ needs.release.outputs.tag }}
-          PUBLISH_VELOCITY: ${{ github.event.inputs.publish_velocity }}
-          PUBLISH_PAPER: ${{ github.event.inputs.publish_paper }}
-          PUBLISH_FABRIC: ${{ github.event.inputs.publish_fabric }}
-          PUBLISH_NEOFORGE: ${{ github.event.inputs.publish_neoforge }}
-          PUBLISH_MINESTOM: ${{ github.event.inputs.publish_minestom }}
-        run: |
-          set -euo pipefail
-          IMAGE_PREFIX="ghcr.io/uebliche"
-          if [ "$PUBLISH_VELOCITY" = "true" ]; then
-            docker build -f docker/Dockerfile.velocity -t "${IMAGE_PREFIX}/hub-velocity:${TAG}" -t "${IMAGE_PREFIX}/hub-velocity:latest" .
-            docker push "${IMAGE_PREFIX}/hub-velocity:${TAG}"
-            docker push "${IMAGE_PREFIX}/hub-velocity:latest"
-          fi
-          if [ "$PUBLISH_PAPER" = "true" ]; then
-            docker build -f docker/Dockerfile.paper -t "${IMAGE_PREFIX}/hub-paper:${TAG}" -t "${IMAGE_PREFIX}/hub-paper:latest" .
-            docker push "${IMAGE_PREFIX}/hub-paper:${TAG}"
-            docker push "${IMAGE_PREFIX}/hub-paper:latest"
-          fi
-          if [ "$PUBLISH_MINESTOM" = "true" ]; then
-            docker build -f docker/Dockerfile.minestom-ffa -t "${IMAGE_PREFIX}/hub-ffa:${TAG}" -t "${IMAGE_PREFIX}/hub-ffa:latest" .
-            docker push "${IMAGE_PREFIX}/hub-ffa:${TAG}"
-            docker push "${IMAGE_PREFIX}/hub-ffa:latest"
-          fi
-
       - name: Upload build artifacts to release
         uses: softprops/action-gh-release@v2
         with:

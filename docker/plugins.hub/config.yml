@@ -169,6 +169,13 @@ finder:
   increment-duration: 20
   max-duration: 200
   refresh-interval-in-ticks: 40
+data-collection:
+  enabled: true
+  dump-file: data-dump.yml
+  dump-interval-minutes: 10
+  max-users: 500
+  max-servers: 500
+  include-uuid: true
 update-checker:
   enabled: true
   notification: ''

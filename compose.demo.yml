@@ -7,7 +7,7 @@ services:
     volumes:
       - ./docker/velocity.docker.toml:/app/velocity.toml:ro
       - ./docker/velocity.forwarding.secret:/app/forwarding.secret:ro
-      - ./docker/plugins.hub:/app/plugins/hub:ro
+      - ./docker/plugins.hub:/app/plugins/hub
     ports:
       - "25577:25577"
     environment:

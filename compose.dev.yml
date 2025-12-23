@@ -28,6 +28,7 @@ services:
         mkdir -p /gradle-cache/velocity
         # reset plugin configs to defaults each run
         rm -f /workspace/loader-velocity/run/plugins/hub/config.yml
+        touch /workspace/loader-velocity/run/plugins/hub/data-dump.yml
         rm -rf /workspace/common/build /workspace/loader-velocity/build
         rm -rf /gradle-cache/velocity/caches/fabric-loom
         "$$tmp" --gradle-user-home /gradle-cache/velocity --project-cache-dir /gradle-cache/velocity-project :loader-velocity:runVelocity --no-daemon

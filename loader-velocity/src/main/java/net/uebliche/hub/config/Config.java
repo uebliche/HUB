@@ -72,6 +72,7 @@ public class Config {
     public Placeholder placeholder = new Placeholder();
     public Finder finder = new Finder();
     public UpdateChecker updateChecker = new UpdateChecker();
+    public DataCollection dataCollection = new DataCollection();
 
     public Config() {
     }
@@ -117,6 +118,19 @@ public class Config {
         public AutoSelect setOnServerKick(boolean onServerKick) {
             this.onServerKick = onServerKick;
             return this;
+        }
+    }
+
+    @ConfigSerializable
+    public static class DataCollection {
+        public boolean enabled = true;
+        public String dumpFile = "data-dump.yml";
+        public int dumpIntervalMinutes = 10;
+        public int maxUsers = 500;
+        public int maxServers = 500;
+        public boolean includeUuid = true;
+
+        public DataCollection() {
         }
     }
 

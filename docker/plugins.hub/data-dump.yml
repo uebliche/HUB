@@ -1,0 +1,87 @@
+# Data dump written by HUB (auto-generated at runtime).
+version: 1
+generated-at: 2025-12-23T12:00:00Z
+servers:
+  - ffa-1
+  - ffa-2
+  - ffa-3
+  - sg-1
+  - sg-2
+  - acade-1
+  - acade-2
+  - lobby-1
+  - lobby-2
+  - teamlobby-1
+  - premiumlobby-1
+  - lobby-minestom-1
+  - lobby-minestom-2
+users:
+  - name: Freddiio
+    uuid: c5eb5df7-b7a9-4919-a9bc-7f59c8bee980
+    permissions:
+      - hub.team
+      - hub.premium
+    last-seen: 2025-12-23T11:45:12Z
+  - name: Luma
+    uuid: 9d6f3c0e-124a-41d8-8f7e-7b7a7d0b2c11
+    permissions:
+      - hub.team
+    last-seen: 2025-12-23T11:39:48Z
+  - name: PixelPanda
+    uuid: 7a4f1d2b-6b7c-4f06-84b1-8ed6a8134c35
+    permissions: []
+    last-seen: 2025-12-23T11:18:03Z
+  - name: Rook
+    uuid: 2f9f18a2-45e4-4b7a-9b53-7c7f4d5c2b88
+    permissions:
+      - hub.premium
+    last-seen: 2025-12-23T10:54:27Z
+  - name: Atlas
+    uuid: 1b1a4e0b-8d91-4a2b-9af4-1c4f1dd8d0e3
+    permissions:
+      - hub.team
+    last-seen: 2025-12-23T11:02:11Z
+  - name: Ember
+    uuid: 6c5f6a12-2e4f-4b2b-9a9c-3b4d5e6f7081
+    permissions:
+      - hub.premium
+    last-seen: 2025-12-23T11:07:36Z
+  - name: Nova
+    uuid: 0c6a9f31-7e5c-4e2a-9a5f-5f9d3a2c4b8e
+    permissions: []
+    last-seen: 2025-12-23T11:12:54Z
+  - name: Echo
+    uuid: 4e2d8a7c-9f51-4d2c-8a5d-0e1f2a3b4c5d
+    permissions:
+      - hub.team
+      - hub.premium
+    last-seen: 2025-12-23T11:15:20Z
+  - name: Sol
+    uuid: 8a4d2f19-6c7b-4b1a-9d3e-2f5c7a9b0d1e
+    permissions: []
+    last-seen: 2025-12-23T11:20:47Z
+  - name: Byte
+    uuid: 2d4f6a8b-1c3e-4f5a-8b9c-7d6e5f4a3b2c
+    permissions:
+      - hub.team
+    last-seen: 2025-12-23T11:23:09Z
+  - name: Luna
+    uuid: 7f5d3c1a-2b4e-4c6d-8e9f-0a1b2c3d4e5f
+    permissions:
+      - hub.premium
+    last-seen: 2025-12-23T11:27:33Z
+  - name: Quinn
+    uuid: 9c8b7a6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d
+    permissions:
+      - hub.team
+    last-seen: 2025-12-23T11:31:18Z
+  - name: Jinx
+    uuid: 3b2c1d0e-4f5a-6b7c-8d9e-0f1a2b3c4d5e
+    permissions: []
+    last-seen: 2025-12-23T11:34:52Z
+  - name: Mira
+    uuid: 5d4c3b2a-1f0e-9d8c-7b6a-5e4f3a2b1c0d
+    permissions:
+      - hub.team
+      - hub.premium
+    last-seen: 2025-12-23T11:37:06Z

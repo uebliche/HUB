@@ -181,6 +181,7 @@ public class DataCollector extends Utils<DataCollector> {
                 .map(Map.Entry::getKey)
                 .toList();
 
+        var configUtils = Utils.util(ConfigUtils.class);
         if (configUtils != null && configUtils.config() != null) {
             dump.lobbies = configUtils.config().lobbies.stream()
                     .map(lobby -> lobby.name)

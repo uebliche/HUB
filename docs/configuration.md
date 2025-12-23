@@ -88,7 +88,30 @@ A lobby entry looks like this:
 - `permission`: If blank, everyone is eligible. Otherwise the player must have the node.
 - `priority`: Higher numbers win. The plugin checks eligible lobbies in descending order.
 - `autojoin`: Informational flag, exported through placeholders.
+- `parent`: Optional parent lobby or lobby-group name used when a player runs `/hub` while already inside this lobby.
+- `parent-groups`: Optional list of parent lobby-group names, checked in order after `parent`.
 - `overwrite-messages`: Partial set of message overrides. Omitted keys fall back to the global `messages` block.
+
+## Lobby Groups
+
+Lobby groups are named collections of lobby names. They are referenced by `lobbies[].parent` or
+`lobbies[].parent-groups` when `/hub` is executed from inside a lobby, so you can send players "up" to a parent lobby
+or a list of parent candidates.
+
+```yaml
+lobby-groups:
+  - name: main
+    lobbies:
+      - lobby
+      - teamlobby
+      - premiumlobby
+  - name: minigame
+    lobbies:
+      - ffa-lobby
+```
+
+- `name`: Group identifier used in `parent` / `parent-groups`.
+- `lobbies`: Ordered list of lobby names. Missing names are skipped (a debug warning is logged when enabled).
 
 ## Last Lobby Preference
 

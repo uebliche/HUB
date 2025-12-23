@@ -283,27 +283,37 @@
             <div class="cb-activity-controls">
               <button type="button" class="cb-btn cb-btn-ghost" id="cb-activity-toggle">Pause</button>
               <button type="button" class="cb-btn cb-btn-ghost" id="cb-activity-reset">Reset</button>
+              <button type="button" class="cb-btn cb-btn-ghost cb-activity-collapse" id="cb-activity-collapse" aria-expanded="true" aria-label="Collapse live activity">
+                <svg class="cb-activity-toggle-icon cb-activity-toggle-open" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <svg class="cb-activity-toggle-icon cb-activity-toggle-closed" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
           </div>
-          <div class="cb-activity-grid">
-            <div class="cb-zone-map">
-            <div class="cb-zone-map-head">
-              <span>Server tree</span>
-              <span class="cb-zone-map-hint">Active server highlighted</span>
+          <div class="cb-activity-body" id="cb-activity-body">
+            <div class="cb-activity-grid">
+              <div class="cb-zone-map">
+              <div class="cb-zone-map-head">
+                <span>Server tree</span>
+                <span class="cb-zone-map-hint">Active server highlighted</span>
+              </div>
+                <div class="cb-zones" id="cb-zones"></div>
+              </div>
+              <div class="cb-activity-history">
+                <div class="cb-activity-empty" id="cb-activity-empty">Waiting for activity...</div>
+                <div class="cb-activity-list" id="cb-activity-list" aria-live="polite"></div>
+              </div>
             </div>
-              <div class="cb-zones" id="cb-zones"></div>
+            <div class="cb-offline-inline">
+              <div class="cb-card-head cb-offline-head">
+                <h3>Offline players</h3>
+                <p>Simulate a full journey: join, lobby pick, game, kick, return, switch, leave.</p>
+              </div>
+              <div class="cb-offline-list" id="cb-offline-list"></div>
             </div>
-            <div class="cb-activity-history">
-              <div class="cb-activity-empty" id="cb-activity-empty">Waiting for activity...</div>
-              <div class="cb-activity-list" id="cb-activity-list" aria-live="polite"></div>
-            </div>
-          </div>
-          <div class="cb-offline-inline">
-            <div class="cb-card-head cb-offline-head">
-              <h3>Offline players</h3>
-              <p>Simulate a full journey: join, lobby pick, game, kick, return, switch, leave.</p>
-            </div>
-            <div class="cb-offline-list" id="cb-offline-list"></div>
           </div>
         </section>
         <section class="cb-card" style="--cb-delay: 0.16s;">
@@ -549,8 +559,11 @@ onMounted(() => {
   const activityEmpty = document.getElementById('cb-activity-empty');
   const activityToggle = document.getElementById('cb-activity-toggle');
   const activityReset = document.getElementById('cb-activity-reset');
+  const activityCollapse = document.getElementById('cb-activity-collapse');
+  const activityBody = document.getElementById('cb-activity-body');
   const activityStatus = document.querySelector('.cb-activity-status');
   const activityLabel = document.querySelector('.cb-activity-label');
+  const activityCard = document.querySelector('.cb-activity');
   const zonesEl = document.getElementById('cb-zones');
   const offlineList = document.getElementById('cb-offline-list');
 
@@ -559,7 +572,8 @@ onMounted(() => {
     || !dataClearBtn || !dataSummary || !testUserSelect || !serverSuggestions || !groupsEl || !lobbiesEl
     || !regexLab || !regexToggle
     || !regexInput || !regexTest || !regexResult || !hideTest || !hideResult || !summaryEl
-    || !activityList || !activityEmpty || !activityToggle || !activityReset || !activityStatus || !activityLabel || !zonesEl || !offlineList) {
+    || !activityList || !activityEmpty || !activityToggle || !activityReset || !activityCollapse || !activityBody
+    || !activityStatus || !activityLabel || !activityCard || !zonesEl || !offlineList) {
     return;
   }
 
@@ -3456,6 +3470,25 @@ onMounted(() => {
     regexToggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
     regexToggle.setAttribute('aria-label', isCollapsed ? 'Expand regex lab' : 'Minimize regex lab');
     window.localStorage.setItem(regexStorageKey, isCollapsed ? 'true' : 'false');
+  });
+
+  const activityStorageKey = 'hub-activity-collapsed';
+  const storedActivityState = window.localStorage.getItem(activityStorageKey);
+  if (storedActivityState === 'true') {
+    activityCard.classList.add('is-collapsed');
+    activityCollapse.setAttribute('aria-expanded', 'false');
+    activityCollapse.setAttribute('aria-label', 'Expand live activity');
+    activityBody.setAttribute('aria-hidden', 'true');
+  } else {
+    activityBody.setAttribute('aria-hidden', 'false');
+  }
+
+  activityCollapse.addEventListener('click', () => {
+    const isCollapsed = activityCard.classList.toggle('is-collapsed');
+    activityCollapse.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    activityCollapse.setAttribute('aria-label', isCollapsed ? 'Expand live activity' : 'Collapse live activity');
+    activityBody.setAttribute('aria-hidden', isCollapsed ? 'true' : 'false');
+    window.localStorage.setItem(activityStorageKey, isCollapsed ? 'true' : 'false');
   });
 
   clearDataDump();

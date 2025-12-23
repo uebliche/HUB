@@ -793,6 +793,28 @@
   position: relative;
 }
 
+.cb-activity.is-collapsed .cb-activity-body {
+  display: none;
+}
+
+.cb-activity-toggle-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.cb-activity-toggle-closed {
+  display: none;
+}
+
+.cb-activity.is-collapsed .cb-activity-toggle-open {
+  display: none;
+}
+
+.cb-activity.is-collapsed .cb-activity-toggle-closed {
+  display: block;
+}
+
 .cb-activity-head {
   display: flex;
   align-items: center;

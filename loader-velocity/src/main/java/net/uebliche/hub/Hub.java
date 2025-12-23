@@ -34,7 +34,7 @@ import static net.kyori.adventure.text.minimessage.MiniMessage.miniMessage;
 public class Hub {
     public static final String PLUGIN_ID = "hub";
     public static final String PLUGIN_NAME = "HUB";
-    public static final String VERSION = "dev";
+    public static final String VERSION = Props.VERSION;
     public static final String AUTHOR = "uebliche";
 
     private static final MinecraftChannelIdentifier HUB_CHANNEL = MinecraftChannelIdentifier.create("uebliche", "hub");

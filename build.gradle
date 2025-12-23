@@ -187,7 +187,7 @@ String resolveTag() {
 
     def suffixOverride = (project.findProperty('tagSuffix') ?: System.getenv('TAG_SUFFIX'))
     suffixOverride = suffixOverride ? suffixOverride.toString().trim().toLowerCase(Locale.ROOT) : ''
-    String baseDate = new Date().format('yyyy-MM-dd')
+    String baseDate = new Date().format('yyyy.MM.dd')
     if (suffixOverride) {
         return baseDate + suffixOverride
     }

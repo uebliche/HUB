@@ -31,27 +31,20 @@
             <button type="button" class="cb-btn cb-btn-ghost" id="cb-load-paste">Load pasted YAML</button>
           <button type="button" class="cb-btn cb-btn-ghost" id="cb-clear-paste">Clear paste</button>
         </div>
-        <div class="cb-divider">Analysis data</div>
-        <label class="cb-file">
-          <span title="Upload a runtime data dump (YAML/JSON) for autocomplete and testing">Upload data dump</span>
-          <input type="file" id="cb-data-file" accept=".yml,.yaml,.json">
-        </label>
-        <label class="cb-field cb-paste">
-          <span title="Paste a runtime data dump to load users and servers">Paste data dump (YAML/JSON)</span>
-          <textarea id="cb-data-paste" rows="4" placeholder="Paste data dump here"></textarea>
-        </label>
-        <div class="cb-paste-actions">
-          <button type="button" class="cb-btn cb-btn-ghost" id="cb-data-load">Load data dump</button>
-          <button type="button" class="cb-btn cb-btn-ghost" id="cb-data-clear">Clear data</button>
-        </div>
-        <div class="cb-pill cb-data-summary-inline" id="cb-data-summary-inline" data-state="idle">No data loaded</div>
+          
         <p class="cb-note">Tip: Use (?i) at the start for case-insensitive filters.</p>
       </div>
     </header>
 
     <div class="cb-layout">
       <div class="cb-main">
-        <section class="cb-card" style="--cb-delay: 0.05s;">
+        <div class="cb-tabs" role="tablist" aria-label="Config sections">
+          <button type="button" class="cb-tab is-active" data-tab="core" role="tab" aria-selected="true">Core settings</button>
+          <button type="button" class="cb-tab" data-tab="finder" role="tab" aria-selected="false">Finder + Data collection</button>
+          <button type="button" class="cb-tab" data-tab="lobbies" role="tab" aria-selected="false">Lobbies</button>
+        </div>
+
+        <section class="cb-card cb-tab-panel is-active" data-tab-panel="core" style="--cb-delay: 0.05s;">
           <div class="cb-card-head">
             <h2>Core settings</h2>
             <p>Commands, routing, and debug toggles.</p>
@@ -146,7 +139,7 @@
           </details>
         </section>
 
-        <section class="cb-card" style="--cb-delay: 0.07s;">
+        <section class="cb-card cb-tab-panel" data-tab-panel="finder" style="--cb-delay: 0.07s;">
           <div class="cb-card-head">
             <h2>Finder + Data collection</h2>
             <p>Configure search timings and runtime data dumps.</p>
@@ -196,22 +189,26 @@
           </div>
         </section>
 
-        <section class="cb-card" style="--cb-delay: 0.1s;">
-          <div class="cb-card-head">
-            <h2>Lobby groups</h2>
-            <p>Group lobbies for fallbacks. Optional.</p>
+        <section class="cb-card cb-lobbies cb-tab-panel" data-tab-panel="lobbies" style="--cb-delay: 0.15s;">
+          <div class="cb-card-head cb-card-head-row">
+            <div>
+              <h2>Lobbies</h2>
+              <p>Add each lobby and its regex filter.</p>
+            </div>
+            <button type="button" class="cb-btn cb-btn-primary" id="cb-add-lobby">Add lobby</button>
           </div>
-          <div id="cb-groups" class="cb-list"></div>
-          <button type="button" class="cb-btn cb-btn-ghost" id="cb-add-group">Add group</button>
-        </section>
-
-        <section class="cb-card cb-lobbies" style="--cb-delay: 0.15s;">
-          <div class="cb-card-head">
-            <h2>Lobbies</h2>
-            <p>Add each lobby and its regex filter.</p>
+          <div class="cb-lobby-layout">
+            <div class="cb-lobby-side">
+              <div class="cb-lobby-side-head">
+                <span>Groups</span>
+                <button type="button" class="cb-btn cb-btn-ghost cb-mini-btn" id="cb-add-group">Add group</button>
+              </div>
+              <div class="cb-lobby-list" id="cb-lobby-list"></div>
+            </div>
+            <div class="cb-lobby-detail">
+              <div id="cb-lobbies"></div>
+            </div>
           </div>
-          <div id="cb-lobbies" class="cb-list"></div>
-          <button type="button" class="cb-btn cb-btn-primary" id="cb-add-lobby">Add lobby</button>
           <p class="cb-footnote">Each lobby can expose a direct command. Extra commands in uploads are kept as-is.</p>
         </section>
 
@@ -248,14 +245,6 @@
       </div>
         </section>
 
-        <section class="cb-card cb-summary" style="--cb-delay: 0.22s;">
-          <div class="cb-card-head">
-            <h2>Quick summary</h2>
-            <p>Compact overview before download.</p>
-          </div>
-          <div class="cb-summary-grid" id="cb-summary"></div>
-        </section>
-
         <section class="cb-card" style="--cb-delay: 0.25s;">
           <div class="cb-card-head">
             <h2>Download</h2>
@@ -269,69 +258,31 @@
         </section>
       </div>
 
-      <aside class="cb-side">
-        <section class="cb-card cb-activity" style="--cb-delay: 0.12s;">
-          <div class="cb-card-head">
-            <h2>Live activity</h2>
-            <p>Simulated timeline based on the latest data dump.</p>
-          </div>
-          <div class="cb-activity-head">
-            <div class="cb-activity-status" data-state="live">
-              <span class="cb-live-dot" aria-hidden="true"></span>
-              <span class="cb-activity-label">Live</span>
-            </div>
-            <div class="cb-activity-controls">
-              <button type="button" class="cb-btn cb-btn-ghost" id="cb-activity-toggle">Pause</button>
-              <button type="button" class="cb-btn cb-btn-ghost" id="cb-activity-reset">Reset</button>
-              <button type="button" class="cb-btn cb-btn-ghost cb-activity-collapse" id="cb-activity-collapse" aria-expanded="true" aria-label="Collapse live activity">
-                <svg class="cb-activity-toggle-icon cb-activity-toggle-open" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <svg class="cb-activity-toggle-icon cb-activity-toggle-closed" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div class="cb-activity-body" id="cb-activity-body">
-            <div class="cb-activity-grid">
-              <div class="cb-zone-map">
-              <div class="cb-zone-map-head">
-                <span>Server tree</span>
-                <span class="cb-zone-map-hint">Active server highlighted</span>
-              </div>
-                <div class="cb-zones" id="cb-zones"></div>
-              </div>
-              <div class="cb-activity-history">
-                <div class="cb-activity-empty" id="cb-activity-empty">Waiting for activity...</div>
-                <div class="cb-activity-list" id="cb-activity-list" aria-live="polite"></div>
-              </div>
-            </div>
-            <div class="cb-offline-inline">
-              <div class="cb-card-head cb-offline-head">
-                <h3>Offline players</h3>
-                <p>Simulate a full journey: join, lobby pick, game, kick, return, switch, leave.</p>
-              </div>
-              <div class="cb-offline-list" id="cb-offline-list"></div>
-            </div>
-          </div>
-        </section>
-        <section class="cb-card" style="--cb-delay: 0.16s;">
-          <div class="cb-card-head">
-            <h2>Analysis data</h2>
-            <p>Load a runtime dump to autocomplete server names and test permissions.</p>
-          </div>
-          <div class="cb-inline-test">
-            <label class="cb-field">
-              <span title="Select a user to preview permissions against lobbies">Test user</span>
-              <select id="cb-test-user"></select>
-            </label>
-            <div class="cb-pill" id="cb-data-summary" data-state="idle">No data loaded</div>
-          </div>
-        </section>
-      </aside>
     </div>
   </div>
+  </div>
+
+  <div class="cb-modal" id="cb-group-modal" hidden>
+    <div class="cb-modal-backdrop" data-action="close"></div>
+    <div class="cb-modal-card" role="dialog" aria-modal="true" aria-labelledby="cb-group-modal-title">
+      <div class="cb-modal-head">
+        <h3 id="cb-group-modal-title">Create lobby group</h3>
+        <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" data-action="close" aria-label="Close">
+          <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18 6l-12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <label class="cb-field">
+        <span>Group name</span>
+        <input id="cb-group-modal-input" type="text" placeholder="main">
+      </label>
+      <div class="cb-modal-actions">
+        <button type="button" class="cb-btn cb-btn-ghost" id="cb-group-modal-cancel">Cancel</button>
+        <button type="button" class="cb-btn cb-btn-primary" id="cb-group-modal-create">Create group</button>
+      </div>
+    </div>
   </div>
 
   <textarea id="cb-default-yaml" hidden>
@@ -546,7 +497,12 @@ onMounted(() => {
   const testUserSelect = document.getElementById('cb-test-user');
   const serverSuggestions = document.getElementById('cb-server-suggestions');
   const groupsEl = document.getElementById('cb-groups');
+  const lobbiesListEl = document.getElementById('cb-lobby-list');
   const lobbiesEl = document.getElementById('cb-lobbies');
+  const groupModal = document.getElementById('cb-group-modal');
+  const groupModalInput = document.getElementById('cb-group-modal-input');
+  const groupModalCreate = document.getElementById('cb-group-modal-create');
+  const groupModalCancel = document.getElementById('cb-group-modal-cancel');
   const regexInput = document.getElementById('cb-regex-input');
   const regexTest = document.getElementById('cb-regex-test');
   const regexResult = document.getElementById('cb-regex-result');
@@ -560,21 +516,46 @@ onMounted(() => {
   const activityToggle = document.getElementById('cb-activity-toggle');
   const activityReset = document.getElementById('cb-activity-reset');
   const activityCollapse = document.getElementById('cb-activity-collapse');
+  const activityReveal = document.getElementById('cb-activity-reveal');
   const activityBody = document.getElementById('cb-activity-body');
   const activityStatus = document.querySelector('.cb-activity-status');
   const activityLabel = document.querySelector('.cb-activity-label');
   const activityCard = document.querySelector('.cb-activity');
   const zonesEl = document.getElementById('cb-zones');
   const offlineList = document.getElementById('cb-offline-list');
+  const tabButtons = Array.from(document.querySelectorAll('[data-tab]'));
+  const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
 
   if (!statusEl || !sourceEl || !updatedEl || !outputEl || !fileInput || !defaultsBtn || !resetBtn || !downloadBtn
-    || !copyBtn || !pasteArea || !pasteLoadBtn || !pasteClearBtn || !dataFileInput || !dataPaste || !dataLoadBtn
-    || !dataClearBtn || !dataSummary || !testUserSelect || !serverSuggestions || !groupsEl || !lobbiesEl
+    || !copyBtn || !pasteArea || !pasteLoadBtn || !pasteClearBtn || !serverSuggestions || !lobbiesEl || !lobbiesListEl
+    || !groupModal || !groupModalInput || !groupModalCreate || !groupModalCancel
     || !regexLab || !regexToggle
-    || !regexInput || !regexTest || !regexResult || !hideTest || !hideResult || !summaryEl
-    || !activityList || !activityEmpty || !activityToggle || !activityReset || !activityCollapse || !activityBody
-    || !activityStatus || !activityLabel || !activityCard || !zonesEl || !offlineList) {
+    || !regexInput || !regexTest || !regexResult || !hideTest || !hideResult) {
     return;
+  }
+
+  const setActiveTab = (tabId) => {
+    if (!tabId) {
+      return;
+    }
+    tabButtons.forEach((button) => {
+      const active = button.dataset.tab === tabId;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+      button.setAttribute('tabindex', active ? '0' : '-1');
+    });
+    tabPanels.forEach((panel) => {
+      panel.classList.toggle('is-active', panel.dataset.tabPanel === tabId);
+    });
+  };
+
+  if (tabButtons.length && tabPanels.length) {
+    setActiveTab(tabButtons[0].dataset.tab);
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        setActiveTab(button.dataset.tab);
+      });
+    });
   }
 
   const inputs = {
@@ -616,6 +597,11 @@ onMounted(() => {
   let analysisData = { servers: [], users: [] };
   let selectedUserId = '';
   let activeLobby = null;
+  let draggingLobby = null;
+  let draggingGroup = '';
+  let pendingGroupSelect = null;
+  let pendingGroupLobby = null;
+  let pendingGroupPrevious = '';
   let userIndex = new Map();
   const avatarCache = new Map();
   const fallbackActivity = {
@@ -673,6 +659,9 @@ onMounted(() => {
   }
 
   function updateSummary() {
+    if (!summaryEl) {
+      return;
+    }
     const groupsCount = Array.isArray(config['lobby-groups']) ? config['lobby-groups'].length : 0;
     const lobbies = Array.isArray(config.lobbies) ? config.lobbies : [];
     const commandNames = [];
@@ -799,8 +788,10 @@ onMounted(() => {
   }
 
   function setDataSummary(text, state) {
-    dataSummary.textContent = text;
-    dataSummary.dataset.state = state || 'idle';
+    if (dataSummary) {
+      dataSummary.textContent = text;
+      dataSummary.dataset.state = state || 'idle';
+    }
     if (dataSummaryInline) {
       dataSummaryInline.textContent = text;
       dataSummaryInline.dataset.state = state || 'idle';
@@ -2416,25 +2407,33 @@ onMounted(() => {
   }
 
   function populateUserSelect() {
-    testUserSelect.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Select user...';
-    testUserSelect.appendChild(placeholder);
     userIndex = new Map();
     analysisData.users.forEach((user) => {
       userIndex.set(user.id, user);
-      const label = user.uuid ? `${user.name} (${user.uuid.slice(0, 8)})` : user.name;
-      const option = document.createElement('option');
-      option.value = user.id;
-      option.textContent = label;
-      testUserSelect.appendChild(option);
     });
-    testUserSelect.disabled = analysisData.users.length === 0;
-    if (!userIndex.has(selectedUserId)) {
-      selectedUserId = '';
+    if (testUserSelect) {
+      testUserSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Select user...';
+      testUserSelect.appendChild(placeholder);
+      analysisData.users.forEach((user) => {
+        const label = user.uuid ? `${user.name} (${user.uuid.slice(0, 8)})` : user.name;
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = label;
+        testUserSelect.appendChild(option);
+      });
+      testUserSelect.disabled = analysisData.users.length === 0;
+      if (!userIndex.has(selectedUserId)) {
+        selectedUserId = '';
+      }
+      testUserSelect.value = selectedUserId;
+      return;
     }
-    testUserSelect.value = selectedUserId;
+    if (!userIndex.has(selectedUserId)) {
+      selectedUserId = analysisData.users[0]?.id || '';
+    }
   }
 
   function applyDataDump(data) {
@@ -2443,9 +2442,6 @@ onMounted(() => {
     populateUserSelect();
     setDataSummary(`Loaded ${analysisData.servers.length} servers, ${analysisData.users.length} users`, 'ok');
     refreshPermissionPills();
-    resetActivityFeed();
-    renderZones();
-    renderOfflinePlayers();
   }
 
   function clearDataDump() {
@@ -2456,9 +2452,6 @@ onMounted(() => {
     populateUserSelect();
     setDataSummary('No data loaded', 'idle');
     refreshPermissionPills();
-    resetActivityFeed();
-    renderZones();
-    renderOfflinePlayers();
   }
 
   function loadDataDumpText(text) {
@@ -2776,55 +2769,265 @@ onMounted(() => {
     updateRegexResult(inputs.hideOn.value, hideTest.value, hideResult);
   }
 
-  function renderGroups() {
+  function deriveGroupParent(group) {
+    if (!group) {
+      return '';
+    }
+    const allLobbies = Array.isArray(config.lobbies) ? config.lobbies : [];
+    const parents = (Array.isArray(group.lobbies) ? group.lobbies : [])
+      .map((name) => allLobbies.find((lobby) => lobby.name === name))
+      .filter(Boolean)
+      .map((lobby) => lobby.parent || '')
+      .filter((value) => value !== '');
+    const uniqueParents = Array.from(new Set(parents));
+    return uniqueParents.length === 1 ? uniqueParents[0] : '';
+  }
+
+  function openGroupModal(selectEl, lobby) {
+    pendingGroupSelect = selectEl || null;
+    pendingGroupLobby = lobby || null;
+    pendingGroupPrevious = selectEl ? (selectEl.dataset.current || selectEl.value || '') : '';
+    groupModal.hidden = false;
+    groupModal.classList.add('is-open');
+    groupModalInput.value = '';
+    groupModalInput.focus();
+  }
+
+  function closeGroupModal() {
+    groupModal.classList.remove('is-open');
+    groupModal.hidden = true;
+    pendingGroupSelect = null;
+    pendingGroupLobby = null;
+    pendingGroupPrevious = '';
+  }
+
+  function assignLobbyToGroup(lobby, groupName) {
+    const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
+    groups.forEach((group) => {
+      const list = Array.isArray(group.lobbies) ? group.lobbies.slice() : [];
+      const next = list.filter((name) => name !== lobby.name);
+      if (group.name === groupName) {
+        next.push(lobby.name || '');
+      }
+      group.lobbies = Array.from(new Set(next.filter(Boolean)));
+    });
+    const selectedGroup = groups.find((group) => group.name === groupName);
+    lobby.parent = deriveGroupParent(selectedGroup);
+    lobby['parent-groups'] = [];
+  }
+
+  function createGroupFromModal() {
+    const raw = groupModalInput.value.trim();
+    if (!raw) {
+      showStatus('Enter a group name', 'warn');
+      return;
+    }
+    if (!Array.isArray(config['lobby-groups'])) {
+      config['lobby-groups'] = [];
+    }
+    const groups = config['lobby-groups'];
+    const existing = groups.find((group) => (group.name || '').toLowerCase() === raw.toLowerCase());
+    const group = existing || { name: raw, lobbies: [] };
+    if (!existing) {
+      groups.push(group);
+    }
+    if (pendingGroupSelect && pendingGroupLobby) {
+      pendingGroupSelect.value = group.name;
+      pendingGroupSelect.dataset.current = group.name;
+      assignLobbyToGroup(pendingGroupLobby, group.name);
+      renderGroups(false);
+      renderLobbies();
+      commitChange();
+    } else {
+      renderGroups();
+      commitChange();
+    }
+    closeGroupModal();
+  }
+
+  function renderGroups(updateLobbies = true) {
+    if (!groupsEl) {
+      if (updateLobbies) {
+        renderLobbies();
+      }
+      return;
+    }
     groupsEl.innerHTML = '';
-    config['lobby-groups'].forEach((group, index) => {
+    const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
+    const getGroupName = (group) => (group && typeof group.name === 'string' ? group.name.trim() : '');
+    const getParentGroup = (group) => {
+      const raw = group && typeof group['parent-group'] === 'string' ? group['parent-group'].trim() : '';
+      const name = getGroupName(group);
+      return raw && raw !== name ? raw : '';
+    };
+    const byName = new Map();
+    groups.forEach((group) => {
+      const name = getGroupName(group);
+      if (name) {
+        byName.set(name, group);
+      }
+    });
+    const children = new Map();
+    groups.forEach((group) => {
+      const parent = getParentGroup(group);
+      const name = getGroupName(group);
+      if (parent && byName.has(parent) && parent !== name) {
+        if (!children.has(parent)) {
+          children.set(parent, []);
+        }
+        children.get(parent).push(group);
+      }
+    });
+    const roots = groups.filter((group) => {
+      const parent = getParentGroup(group);
+      return !parent || !byName.has(parent);
+    });
+    const rendered = new Set();
+
+    const renderGroupRow = (group, depth) => {
+      const index = config['lobby-groups'].indexOf(group);
       const card = document.createElement('div');
-      card.className = 'cb-mini-card';
+      card.className = 'cb-group-row';
+      card.style.setProperty('--cb-depth', String(depth));
+      card.dataset.depth = String(depth);
       card.innerHTML = `
-        <div class="cb-mini-head">
-          <h3>Group ${index + 1}</h3>
-          <button type="button" class="cb-btn cb-btn-danger cb-icon-btn" data-action="remove" aria-label="Remove group" title="Remove group">
-            <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M9 7V5h6v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="cb-grid-2">
-          <label class="cb-field">
-            <span title="Name of the lobby group">Name</span>
-            <input type="text" data-field="name">
-          </label>
-          <label class="cb-field">
-            <span title="Lobby names that belong to this group">Lobbies (comma separated)</span>
-            <input type="text" data-field="lobbies">
-          </label>
-        </div>
+        <label class="cb-field cb-group-field">
+          <span title="Name of the lobby group">Group</span>
+          <input type="text" data-field="name" placeholder="main">
+        </label>
+        <label class="cb-field cb-group-field">
+          <span title="Parent group for nesting">Parent group</span>
+          <select data-field="parentGroup"></select>
+        </label>
+        <label class="cb-field cb-group-field">
+          <span title="Lobbies that belong to this group">Lobbies</span>
+          <input type="text" data-field="lobbies" placeholder="lobby, teamlobby">
+        </label>
+        <label class="cb-field cb-group-field">
+          <span title="Parent lobby used when /hub is run from a lobby in this group">Parent lobby</span>
+          <select data-field="parent"></select>
+        </label>
+        <button type="button" class="cb-btn cb-btn-danger cb-icon-btn cb-group-remove" data-action="remove" aria-label="Remove group" title="Remove group">
+          <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M9 7V5h6v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       `;
       const nameInput = card.querySelector('[data-field="name"]');
       const lobbiesInput = card.querySelector('[data-field="lobbies"]');
+      const parentGroupSelect = card.querySelector('[data-field="parentGroup"]');
+      const parentSelect = card.querySelector('[data-field="parent"]');
       const removeBtn = card.querySelector('[data-action="remove"]');
+      const allLobbies = Array.isArray(config.lobbies) ? config.lobbies : [];
+      const allGroups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
+      const currentName = getGroupName(group);
+      const parentGroupOptions = ['<option value="">No parent</option>'].concat(
+        allGroups
+          .filter((candidate) => candidate.name && candidate.name !== currentName)
+          .map((candidate) => `<option value="${candidate.name}">${candidate.name}</option>`)
+      );
+      parentGroupSelect.innerHTML = parentGroupOptions.join('');
+      const currentParentGroup = getParentGroup(group);
+      parentGroupSelect.value = currentParentGroup;
+      const lobbyOptions = ['<option value="">No parent</option>'].concat(
+        allLobbies.map((lobby) => `<option value="${lobby.name}">${lobby.name}</option>`)
+      );
+      parentSelect.innerHTML = lobbyOptions.join('');
+      parentSelect.value = deriveGroupParent(group);
       nameInput.value = group.name || '';
       lobbiesInput.value = listToText(group.lobbies);
       enhanceHints(card);
       nameInput.addEventListener('input', () => {
+        const previousName = group.name || '';
         group.name = nameInput.value.trim();
+        if (previousName && previousName !== group.name) {
+          groups.forEach((entry) => {
+            if (entry['parent-group'] === previousName) {
+              entry['parent-group'] = group.name;
+            }
+          });
+        }
+        renderLobbies();
+        commitChange();
+      });
+      nameInput.addEventListener('blur', () => {
+        renderGroups(false);
+      });
+      parentGroupSelect.addEventListener('change', () => {
+        const value = parentGroupSelect.value;
+        group['parent-group'] = value && value !== group.name ? value : '';
+        renderGroups(false);
         commitChange();
       });
       lobbiesInput.addEventListener('input', () => {
         group.lobbies = parseList(lobbiesInput.value);
+        const currentParent = parentSelect.value;
+        if (currentParent) {
+          const lobbyMap = new Map(allLobbies.map((lobby) => [lobby.name, lobby]));
+          group.lobbies.forEach((name) => {
+            const lobby = lobbyMap.get(name);
+            if (lobby) {
+              lobby.parent = currentParent;
+              lobby['parent-groups'] = [];
+            }
+          });
+        }
+        commitChange();
+      });
+      parentSelect.addEventListener('change', () => {
+        const value = parentSelect.value;
+        const lobbyMap = new Map(allLobbies.map((lobby) => [lobby.name, lobby]));
+        group.lobbies = Array.isArray(group.lobbies) ? group.lobbies : [];
+        group.lobbies.forEach((name) => {
+          const lobby = lobbyMap.get(name);
+          if (lobby) {
+            lobby.parent = value;
+            lobby['parent-groups'] = [];
+          }
+        });
         commitChange();
       });
       removeBtn.addEventListener('click', () => {
-        config['lobby-groups'].splice(index, 1);
+        const previousName = group.name || '';
+        if (index >= 0) {
+          config['lobby-groups'].splice(index, 1);
+        }
+        if (previousName) {
+          groups.forEach((entry) => {
+            if (entry['parent-group'] === previousName) {
+              entry['parent-group'] = '';
+            }
+          });
+        }
         renderGroups();
         commitChange();
       });
       groupsEl.appendChild(card);
+    };
+
+    const walk = (group, depth) => {
+      if (rendered.has(group)) {
+        return;
+      }
+      renderGroupRow(group, depth);
+      rendered.add(group);
+      const name = getGroupName(group);
+      const kids = children.get(name) || [];
+      kids.forEach((child) => walk(child, depth + 1));
+    };
+
+    roots.forEach((group) => walk(group, 0));
+    groups.forEach((group) => {
+      if (!rendered.has(group)) {
+        renderGroupRow(group, 0);
+      }
     });
+    if (updateLobbies) {
+      renderLobbies();
+    }
   }
 
   function getPrimaryCommand(lobby) {
@@ -2837,16 +3040,340 @@ onMounted(() => {
 
   function renderLobbies() {
     lobbiesEl.innerHTML = '';
+    lobbiesListEl.innerHTML = '';
     if (activeLobby && !config.lobbies.includes(activeLobby)) {
       activeLobby = null;
     }
-    config.lobbies.forEach((lobby, index) => {
+    let activeIndex = activeLobby ? config.lobbies.indexOf(activeLobby) : -1;
+
+    if (!config.lobbies.length) {
+      const empty = document.createElement('div');
+      empty.className = 'cb-lobby-empty';
+      empty.textContent = 'No lobbies yet. Add one to start.';
+      lobbiesListEl.appendChild(empty);
+      return;
+    }
+
+    const lobbyIndices = new Map();
+    config.lobbies.forEach((lobby, index) => lobbyIndices.set(lobby, index));
+
+    const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
+    const getGroupName = (group) => (group && typeof group.name === 'string' ? group.name.trim() : '');
+    const groupEntries = groups
+      .map((group) => ({ group, name: getGroupName(group) }))
+      .filter((entry) => entry.name);
+    const groupByName = new Map();
+    groupEntries.forEach((entry) => groupByName.set(entry.name, entry.group));
+    const getParentGroup = (group) => {
+      const raw = group && typeof group['parent-group'] === 'string' ? group['parent-group'].trim() : '';
+      const name = getGroupName(group);
+      return raw && raw !== name && groupByName.has(raw) ? raw : '';
+    };
+    const children = new Map();
+    groupEntries.forEach((entry) => {
+      const parent = getParentGroup(entry.group);
+      if (parent) {
+        if (!children.has(parent)) {
+          children.set(parent, []);
+        }
+        children.get(parent).push(entry);
+      }
+    });
+    const rootGroups = groupEntries.filter((entry) => !getParentGroup(entry.group));
+
+    const lobbyGroupMap = new Map();
+    groupEntries.forEach((entry) => {
+      if (!Array.isArray(entry.group.lobbies)) {
+        return;
+      }
+      entry.group.lobbies.forEach((name) => {
+        if (name) {
+          lobbyGroupMap.set(name, entry.name);
+        }
+      });
+    });
+    const lobbyBuckets = new Map();
+    config.lobbies.forEach((lobby) => {
+      const groupName = lobbyGroupMap.get(lobby.name || '') || '';
+      if (!lobbyBuckets.has(groupName)) {
+        lobbyBuckets.set(groupName, []);
+      }
+      lobbyBuckets.get(groupName).push(lobby);
+    });
+
+    const clearDropTargets = () => {
+      lobbiesListEl.querySelectorAll('.cb-lobby-group.is-drop-target').forEach((el) => {
+        el.classList.remove('is-drop-target');
+      });
+    };
+
+    const clearGroupDropTargets = () => {
+      lobbiesListEl.querySelectorAll('.cb-lobby-group.is-group-drop').forEach((el) => {
+        el.classList.remove('is-group-drop');
+      });
+    };
+
+    const isDescendant = (sourceName, targetName) => {
+      if (!sourceName || !targetName) {
+        return false;
+      }
+      const stack = (children.get(sourceName) || []).map((entry) => entry.name);
+      while (stack.length) {
+        const current = stack.pop();
+        if (current === targetName) {
+          return true;
+        }
+        const kids = children.get(current) || [];
+        kids.forEach((child) => stack.push(child.name));
+      }
+      return false;
+    };
+
+    const createLobbyListItem = (lobby) => {
+      const index = lobbyIndices.get(lobby) ?? 0;
+      const listItem = document.createElement('button');
+      listItem.type = 'button';
+      listItem.className = 'cb-lobby-item';
+      if (lobby === activeLobby) {
+        listItem.classList.add('is-active');
+      }
+      const name = lobby.name ? lobby.name : `Lobby ${index + 1}`;
+      const priority = Number.isFinite(Number(lobby.priority)) ? Number(lobby.priority) : 0;
+      listItem.innerHTML = `
+        <span class="cb-lobby-item-name">${name}</span>
+        <span class="cb-lobby-item-meta">prio ${priority}</span>
+      `;
+      listItem.draggable = true;
+      listItem.addEventListener('click', () => {
+        activeLobby = lobby;
+        renderLobbies();
+        syncRegexLabWithLobby(lobby);
+      });
+      listItem.addEventListener('dragstart', (event) => {
+        draggingLobby = lobby;
+        draggingGroup = '';
+        listItem.classList.add('is-dragging');
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', lobby.name || '');
+        }
+      });
+      listItem.addEventListener('dragend', () => {
+        listItem.classList.remove('is-dragging');
+        draggingLobby = null;
+        clearDropTargets();
+      });
+      return listItem;
+    };
+
+    const resolveDraggedLobby = (event) => {
+      if (draggingLobby) {
+        return draggingLobby;
+      }
+      const name = event?.dataTransfer ? event.dataTransfer.getData('text/plain') : '';
+      if (name) {
+        return config.lobbies.find((lobby) => lobby.name === name) || null;
+      }
+      return null;
+    };
+
+    const attachDropHandlers = (target, groupName) => {
+      target.addEventListener('dragenter', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        event.preventDefault();
+        target.classList.add('is-drop-target');
+      });
+      target.addEventListener('dragover', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = 'move';
+        }
+        target.classList.add('is-drop-target');
+      });
+      target.addEventListener('dragleave', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        if (!target.contains(event.relatedTarget)) {
+          target.classList.remove('is-drop-target');
+        }
+      });
+      target.addEventListener('drop', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        event.preventDefault();
+        target.classList.remove('is-drop-target');
+        const lobby = resolveDraggedLobby(event);
+        if (!lobby) {
+          return;
+        }
+        assignLobbyToGroup(lobby, groupName);
+        activeLobby = lobby;
+        renderGroups(false);
+        renderLobbies();
+        commitChange();
+      });
+    };
+
+    const attachGroupDropHandlers = (target, groupName) => {
+      target.addEventListener('dragenter', (event) => {
+        if (!draggingGroup || draggingLobby) {
+          return;
+        }
+        if (draggingGroup === groupName) {
+          return;
+        }
+        if (groupName && isDescendant(draggingGroup, groupName)) {
+          return;
+        }
+        event.preventDefault();
+        target.classList.add('is-group-drop');
+      });
+      target.addEventListener('dragover', (event) => {
+        if (!draggingGroup || draggingLobby) {
+          return;
+        }
+        if (draggingGroup === groupName) {
+          return;
+        }
+        if (groupName && isDescendant(draggingGroup, groupName)) {
+          return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = 'move';
+        }
+        target.classList.add('is-group-drop');
+      });
+      target.addEventListener('dragleave', (event) => {
+        if (!draggingGroup || draggingLobby) {
+          return;
+        }
+        if (!target.contains(event.relatedTarget)) {
+          target.classList.remove('is-group-drop');
+        }
+      });
+      target.addEventListener('drop', (event) => {
+        if (!draggingGroup || draggingLobby) {
+          return;
+        }
+        event.preventDefault();
+        target.classList.remove('is-group-drop');
+        if (draggingGroup === groupName) {
+          return;
+        }
+        if (groupName && isDescendant(draggingGroup, groupName)) {
+          return;
+        }
+        const draggedGroup = groupByName.get(draggingGroup);
+        if (!draggedGroup) {
+          return;
+        }
+        draggedGroup['parent-group'] = groupName || '';
+        draggingGroup = '';
+        clearGroupDropTargets();
+        renderLobbies();
+        commitChange();
+      });
+    };
+
+    const renderGroupSection = (label, groupName, depth) => {
+      const isUngrouped = !groupName;
+      const section = document.createElement('div');
+      section.className = 'cb-lobby-group';
+      section.dataset.group = groupName;
+      section.dataset.depth = String(depth || 0);
+      section.style.setProperty('--cb-depth', depth || 0);
+      const head = document.createElement('div');
+      head.className = 'cb-lobby-group-head';
+      if (!isUngrouped) {
+        head.draggable = true;
+        head.addEventListener('dragstart', (event) => {
+          draggingGroup = groupName;
+          draggingLobby = null;
+          section.classList.add('is-group-dragging');
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', groupName);
+          }
+        });
+        head.addEventListener('dragend', () => {
+          section.classList.remove('is-group-dragging');
+          draggingGroup = '';
+          clearGroupDropTargets();
+        });
+      }
+      const title = document.createElement('span');
+      title.className = 'cb-lobby-group-title';
+      title.textContent = label;
+      const count = document.createElement('span');
+      count.className = 'cb-lobby-group-count';
+      const items = lobbyBuckets.get(groupName) || [];
+      count.textContent = `${items.length}`;
+      const actions = document.createElement('div');
+      actions.className = 'cb-lobby-group-actions';
+      actions.appendChild(count);
+      head.appendChild(title);
+      head.appendChild(actions);
+      const body = document.createElement('div');
+      body.className = 'cb-lobby-group-body';
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'cb-lobby-group-empty';
+        empty.textContent = 'Drop lobby here';
+        body.appendChild(empty);
+      } else {
+        items.forEach((lobby) => {
+          body.appendChild(createLobbyListItem(lobby));
+        });
+      }
+      section.appendChild(head);
+      section.appendChild(body);
+      attachDropHandlers(section, groupName);
+      attachGroupDropHandlers(section, groupName);
+      lobbiesListEl.appendChild(section);
+    };
+
+    renderGroupSection('No group', '', 0);
+    const renderTree = (entry, depth) => {
+      renderGroupSection(entry.name, entry.name, depth);
+      const kids = children.get(entry.name) || [];
+      kids.forEach((child) => renderTree(child, depth + 1));
+    };
+    rootGroups.forEach((entry) => renderTree(entry, 0));
+
+    if (activeIndex < 0 && config.lobbies.length) {
+      activeIndex = 0;
+      activeLobby = config.lobbies[0];
+    }
+
+    const lobby = config.lobbies[activeIndex];
+    if (!lobby) {
+      return;
+    }
+    const index = activeIndex;
       const card = document.createElement('div');
       card.className = 'cb-lobby';
       card.innerHTML = `
         <div class="cb-mini-head">
           <h3 data-role="title">Lobby ${index + 1}</h3>
           <div class="cb-mini-actions">
+            <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" data-action="move-up" aria-label="Move lobby up" title="Move lobby up">
+              <svg class="cb-move-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 14l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" data-action="move-down" aria-label="Move lobby down" title="Move lobby down">
+              <svg class="cb-move-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
             <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" data-action="duplicate" aria-label="Duplicate lobby" title="Duplicate lobby">
               <svg class="cb-duplicate-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="9" y="9" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -2881,14 +3408,6 @@ onMounted(() => {
             <input type="number" data-field="priority" min="-10" max="100" step="1">
           </label>
           <label class="cb-field">
-            <span title="Fallback parent lobby name">Parent lobby</span>
-            <input type="text" data-field="parent">
-          </label>
-          <label class="cb-field">
-            <span title="Fallback parent groups for this lobby">Parent groups (comma separated)</span>
-            <input type="text" data-field="parentGroups">
-          </label>
-          <label class="cb-field">
             <span title="Allow autojoin to this lobby">Autojoin flag</span>
             <input type="checkbox" data-field="autojoin">
           </label>
@@ -2915,9 +3434,6 @@ onMounted(() => {
             </label>
           </div>
         </details>
-      <div class="cb-inline-test cb-lobby-perm">
-        <div class="cb-pill cb-perm-pill" data-role="perm-result" data-index="${index}" data-state="idle">Select user</div>
-      </div>
       <p class="cb-note">First command is editable here. Extra commands stay untouched.</p>
       <details class="cb-details cb-override">
         <summary>Override messages</summary>
@@ -2950,6 +3466,8 @@ onMounted(() => {
       const title = card.querySelector('[data-role="title"]');
       const removeBtn = card.querySelector('[data-action="remove"]');
       const duplicateBtn = card.querySelector('[data-action="duplicate"]');
+      const moveUpBtn = card.querySelector('[data-action="move-up"]');
+      const moveDownBtn = card.querySelector('[data-action="move-down"]');
       enhanceHints(card);
 
       const fields = {
@@ -2957,8 +3475,6 @@ onMounted(() => {
         filter: card.querySelector('[data-field="filter"]'),
         permission: card.querySelector('[data-field="permission"]'),
         priority: card.querySelector('[data-field="priority"]'),
-        parent: card.querySelector('[data-field="parent"]'),
-        parentGroups: card.querySelector('[data-field="parentGroups"]'),
         autojoin: card.querySelector('[data-field="autojoin"]'),
         commandName: card.querySelector('[data-field="commandName"]'),
         commandMode: card.querySelector('[data-field="commandMode"]'),
@@ -2977,8 +3493,6 @@ onMounted(() => {
       fields.filter.value = lobby.filter || '';
       fields.permission.value = lobby.permission || '';
       fields.priority.value = Number.isFinite(Number(lobby.priority)) ? lobby.priority : 0;
-      fields.parent.value = lobby.parent || '';
-      fields.parentGroups.value = listToText(lobby['parent-groups']);
       fields.autojoin.checked = Boolean(lobby.autojoin);
 
     const primaryCommand = getPrimaryCommand(lobby);
@@ -2999,7 +3513,7 @@ onMounted(() => {
     title.textContent = lobby.name ? lobby.name : `Lobby ${index + 1}`;
 
     card.addEventListener('click', (event) => {
-      if (event.target.closest('[data-action="remove"], [data-action="duplicate"]')) {
+      if (event.target.closest('[data-action="remove"], [data-action="duplicate"], [data-action="move-up"], [data-action="move-down"]')) {
         return;
       }
       activeLobby = lobby;
@@ -3016,9 +3530,25 @@ onMounted(() => {
     overrideFields.disconnected.value = overwrite['server-disconnected-message'] ?? '';
     overrideFields.cancelled.value = overwrite['connection-cancelled-message'] ?? '';
 
-    fields.name.addEventListener('input', () => {
+      fields.name.addEventListener('input', () => {
+        const previousName = lobby.name || '';
         lobby.name = fields.name.value.trim();
         title.textContent = lobby.name ? lobby.name : `Lobby ${index + 1}`;
+        if (previousName && previousName !== lobby.name) {
+          const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
+          groups.forEach((group) => {
+            if (!Array.isArray(group.lobbies)) {
+              return;
+            }
+            const next = group.lobbies.map((name) => (name === previousName ? lobby.name : name));
+            group.lobbies = Array.from(new Set(next.filter(Boolean)));
+          });
+          renderGroups(false);
+        }
+        const listName = lobbiesListEl.querySelector('.cb-lobby-item.is-active .cb-lobby-item-name');
+        if (listName) {
+          listName.textContent = lobby.name || `Lobby ${index + 1}`;
+        }
         commitChange();
       });
 
@@ -3042,15 +3572,34 @@ onMounted(() => {
         commitChange();
       });
 
-      fields.parent.addEventListener('input', () => {
-        lobby.parent = fields.parent.value;
+      const moveLobby = (delta) => {
+        const nextIndex = index + delta;
+        if (nextIndex < 0 || nextIndex >= config.lobbies.length) {
+          return;
+        }
+        const copy = config.lobbies.slice();
+        const [item] = copy.splice(index, 1);
+        copy.splice(nextIndex, 0, item);
+        config.lobbies = copy;
+        renderLobbies();
         commitChange();
-      });
+      };
 
-      fields.parentGroups.addEventListener('input', () => {
-        lobby['parent-groups'] = parseList(fields.parentGroups.value);
-        commitChange();
-      });
+      if (moveUpBtn) {
+        moveUpBtn.disabled = index === 0;
+        moveUpBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          moveLobby(-1);
+        });
+      }
+
+      if (moveDownBtn) {
+        moveDownBtn.disabled = index === config.lobbies.length - 1;
+        moveDownBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          moveLobby(1);
+        });
+      }
 
       fields.autojoin.addEventListener('change', () => {
         lobby.autojoin = fields.autojoin.checked;
@@ -3155,7 +3704,18 @@ onMounted(() => {
     overrideFields.cancelled.addEventListener('input', () => setOverwriteValue('connection-cancelled-message', overrideFields.cancelled.value));
 
       removeBtn.addEventListener('click', () => {
+        const lobbyName = lobby.name;
         config.lobbies.splice(index, 1);
+        if (lobbyName) {
+          const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
+          groups.forEach((group) => {
+            if (!Array.isArray(group.lobbies)) {
+              return;
+            }
+            group.lobbies = group.lobbies.filter((name) => name !== lobbyName);
+          });
+          renderGroups(false);
+        }
         renderLobbies();
         commitChange();
       });
@@ -3169,14 +3729,11 @@ onMounted(() => {
       });
 
       lobbiesEl.appendChild(card);
-    });
     refreshPermissionPills();
   }
 
   function addGroup() {
-    config['lobby-groups'].push({ name: `group-${config['lobby-groups'].length + 1}`, lobbies: [] });
-    renderGroups();
-    commitChange();
+    openGroupModal(null, null);
   }
 
   function addLobby() {
@@ -3226,43 +3783,36 @@ onMounted(() => {
     }
   });
 
-  dataFileInput.addEventListener('change', async () => {
-    const file = dataFileInput.files && dataFileInput.files[0];
-    if (!file) {
-      return;
-    }
-    try {
-      const text = await file.text();
-      loadDataDumpText(text);
-    } catch (error) {
-      setDataSummary('Failed to read data dump', 'bad');
-    }
-  });
+  if (dataFileInput && dataPaste && dataLoadBtn && dataClearBtn) {
+    dataFileInput.addEventListener('change', async () => {
+      const file = dataFileInput.files && dataFileInput.files[0];
+      if (!file) {
+        return;
+      }
+      try {
+        const text = await file.text();
+        loadDataDumpText(text);
+      } catch (error) {
+        setDataSummary('Failed to read data dump', 'bad');
+      }
+    });
 
-  dataLoadBtn.addEventListener('click', () => {
-    loadDataDumpText(dataPaste.value);
-  });
+    dataLoadBtn.addEventListener('click', () => {
+      loadDataDumpText(dataPaste.value);
+    });
 
-  dataClearBtn.addEventListener('click', () => {
-    dataPaste.value = '';
-    clearDataDump();
-  });
+    dataClearBtn.addEventListener('click', () => {
+      dataPaste.value = '';
+      clearDataDump();
+    });
+  }
 
-  testUserSelect.addEventListener('change', () => {
-    selectedUserId = testUserSelect.value;
-    refreshPermissionPills();
-  });
-
-  activityToggle.addEventListener('click', () => {
-    activityState.running = !activityState.running;
-    activityToggle.textContent = activityState.running ? 'Pause' : 'Resume';
-    activityStatus.dataset.state = activityState.running ? 'live' : 'paused';
-    activityLabel.textContent = activityState.running ? 'Live' : 'Paused';
-  });
-
-  activityReset.addEventListener('click', () => {
-    resetActivityFeed();
-  });
+  if (testUserSelect) {
+    testUserSelect.addEventListener('change', () => {
+      selectedUserId = testUserSelect.value;
+      refreshPermissionPills();
+    });
+  }
 
     pasteLoadBtn.addEventListener('click', () => {
       const text = pasteArea.value.trim();
@@ -3303,8 +3853,26 @@ onMounted(() => {
       }
     });
 
-  document.getElementById('cb-add-group').addEventListener('click', addGroup);
+  const addGroupBtn = document.getElementById('cb-add-group');
+  if (addGroupBtn) {
+    addGroupBtn.addEventListener('click', addGroup);
+  }
   document.getElementById('cb-add-lobby').addEventListener('click', addLobby);
+  groupModalCreate.addEventListener('click', createGroupFromModal);
+  groupModalCancel.addEventListener('click', closeGroupModal);
+  groupModal.querySelectorAll('[data-action="close"]').forEach((btn) => {
+    btn.addEventListener('click', closeGroupModal);
+  });
+  groupModalInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      createGroupFromModal();
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeGroupModal();
+    }
+  });
 
     inputs.baseCommand.addEventListener('input', () => {
       config['base-hub-command'] = inputs.baseCommand.value.trim();
@@ -3472,30 +4040,8 @@ onMounted(() => {
     window.localStorage.setItem(regexStorageKey, isCollapsed ? 'true' : 'false');
   });
 
-  const activityStorageKey = 'hub-activity-collapsed';
-  const storedActivityState = window.localStorage.getItem(activityStorageKey);
-  if (storedActivityState === 'true') {
-    activityCard.classList.add('is-collapsed');
-    activityCollapse.setAttribute('aria-expanded', 'false');
-    activityCollapse.setAttribute('aria-label', 'Expand live activity');
-    activityBody.setAttribute('aria-hidden', 'true');
-  } else {
-    activityBody.setAttribute('aria-hidden', 'false');
-  }
-
-  activityCollapse.addEventListener('click', () => {
-    const isCollapsed = activityCard.classList.toggle('is-collapsed');
-    activityCollapse.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-    activityCollapse.setAttribute('aria-label', isCollapsed ? 'Expand live activity' : 'Collapse live activity');
-    activityBody.setAttribute('aria-hidden', isCollapsed ? 'true' : 'false');
-    window.localStorage.setItem(activityStorageKey, isCollapsed ? 'true' : 'false');
-  });
-
   clearDataDump();
-  renderZones();
-  renderOfflinePlayers();
   enhanceHints();
-  startActivityTimer();
 }
 
   init();

@@ -187,6 +187,7 @@ public class Config {
     public static class LobbyGroup {
         public String name;
         public List<String> lobbies = List.of();
+        public String parentGroup = "";
 
         public LobbyGroup() {
         }

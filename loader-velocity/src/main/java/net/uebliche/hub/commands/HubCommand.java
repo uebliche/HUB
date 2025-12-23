@@ -10,8 +10,10 @@ import net.uebliche.hub.config.Lobby;
 import net.uebliche.hub.utils.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Locale;
@@ -172,6 +174,7 @@ public class HubCommand {
         }
 
         boolean attempted = false;
+        var resolver = new ParentTargetResolver(configUtils.config(), messageUtils, player);
         var visitedParentLobbies = new LinkedHashSet<String>();
         for (String parentName : orderedUniqueParents) {
             if (parentName.equalsIgnoreCase(currentLobby.name)) {
@@ -179,7 +182,7 @@ public class HubCommand {
                 continue;
             }
 
-            var candidateLobbies = resolveParentTargets(parentName, configUtils.config(), messageUtils, player);
+            var candidateLobbies = resolver.resolve(parentName);
             if (candidateLobbies.isEmpty()) {
                 messageUtils.sendDebugMessage(player, "<yellow>⚠️ Parent lobby or group '" + parentName + "' not found in config; skipping.</yellow>");
                 continue;
@@ -214,30 +217,99 @@ public class HubCommand {
         return attempted;
     }
 
-    private List<Lobby> resolveParentTargets(String parentName, net.uebliche.hub.config.Config config, MessageUtils messageUtils, Player player) {
-        var results = new ArrayList<Lobby>();
+    private static final class ParentTargetResolver {
+        private final Map<String, Lobby> lobbyByName = new LinkedHashMap<>();
+        private final Map<String, net.uebliche.hub.config.Config.LobbyGroup> groupByName = new LinkedHashMap<>();
+        private final Map<String, List<String>> childrenByGroup = new LinkedHashMap<>();
+        private final MessageUtils messageUtils;
+        private final Player player;
 
-        config.lobbies.stream()
-                .filter(lobby -> lobby.name.equalsIgnoreCase(parentName))
-                .findFirst()
-                .ifPresent(results::add);
+        private ParentTargetResolver(net.uebliche.hub.config.Config config, MessageUtils messageUtils, Player player) {
+            this.messageUtils = messageUtils;
+            this.player = player;
+            if (config == null) {
+                return;
+            }
+            if (config.lobbies != null) {
+                config.lobbies.forEach(lobby -> {
+                    var key = normalizeName(lobby.name);
+                    if (!key.isBlank()) {
+                        lobbyByName.put(key, lobby);
+                    }
+                });
+            }
+            if (config.lobbyGroups != null) {
+                config.lobbyGroups.forEach(group -> {
+                    var key = normalizeName(group.name);
+                    if (!key.isBlank()) {
+                        groupByName.put(key, group);
+                    }
+                });
+            }
+            groupByName.values().forEach(group -> {
+                var nameKey = normalizeName(group.name);
+                var parentKey = normalizeName(group.parentGroup);
+                if (nameKey.isBlank() || parentKey.isBlank() || parentKey.equals(nameKey)) {
+                    return;
+                }
+                if (!groupByName.containsKey(parentKey)) {
+                    return;
+                }
+                childrenByGroup.computeIfAbsent(parentKey, ignored -> new ArrayList<>()).add(nameKey);
+            });
+        }
 
-        if (!results.isEmpty()) {
+        private static String normalizeName(String value) {
+            return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+        }
+
+        private List<Lobby> resolve(String parentName) {
+            var key = normalizeName(parentName);
+            if (key.isBlank()) {
+                return List.of();
+            }
+            var lobby = lobbyByName.get(key);
+            if (lobby != null) {
+                return List.of(lobby);
+            }
+            var group = groupByName.get(key);
+            if (group == null) {
+                return List.of();
+            }
+            var results = new ArrayList<Lobby>();
+            collectGroupLobbies(key, new LinkedHashSet<>(), new LinkedHashSet<>(), results);
             return results;
         }
 
-        config.lobbyGroups.stream()
-                .filter(group -> group.name.equalsIgnoreCase(parentName))
-                .findFirst()
-                .ifPresent(group -> {
-                    group.lobbies.forEach(lobbyName -> config.lobbies.stream()
-                            .filter(lobby -> lobby.name.equalsIgnoreCase(lobbyName))
-                            .findFirst()
-                            .ifPresentOrElse(results::add, () -> messageUtils.sendDebugMessage(player,
-                                    "<yellow>⚠️ Lobby '" + lobbyName + "' from group '" + parentName + "' not found; skipping.</yellow>")));
-                });
-
-        return results;
+        private void collectGroupLobbies(String groupKey, Set<String> visitedGroups, Set<String> visitedLobbies, List<Lobby> out) {
+            if (!visitedGroups.add(groupKey)) {
+                return;
+            }
+            var group = groupByName.get(groupKey);
+            if (group == null) {
+                return;
+            }
+            var entries = group.lobbies != null ? group.lobbies : List.<String>of();
+            for (String lobbyName : entries) {
+                var lobbyKey = normalizeName(lobbyName);
+                if (lobbyKey.isBlank()) {
+                    continue;
+                }
+                var lobby = lobbyByName.get(lobbyKey);
+                if (lobby == null) {
+                    messageUtils.sendDebugMessage(player,
+                            "<yellow>⚠️ Lobby '" + lobbyName + "' from group '" + group.name + "' not found; skipping.</yellow>");
+                    continue;
+                }
+                if (visitedLobbies.add(lobby.name.toLowerCase(Locale.ROOT))) {
+                    out.add(lobby);
+                }
+            }
+            var children = childrenByGroup.getOrDefault(groupKey, List.of());
+            for (String childKey : children) {
+                collectGroupLobbies(childKey, visitedGroups, visitedLobbies, out);
+            }
+        }
     }
 
     private int execute(CommandContext<CommandSource> commandContext, Lobby lobby) {

@@ -78,6 +78,7 @@ minestom = "minestom:25565"
 ffa = "ffa:25565"
 lobby = "paper:25565"
 lobby-minestom = "minestom:25565"
+lobby-minigames = "minigames-lobby:25565"
 lobby-neoforge = "neoforge:25565"
 lobby-fabric = "fabric:25565"
 

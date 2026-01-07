@@ -8,6 +8,7 @@ import com.velocitypowered.api.proxy.Player;
 import net.uebliche.hub.Hub;
 import net.uebliche.hub.config.Lobby;
 import net.uebliche.hub.utils.*;
+import net.uebliche.hub.utils.MessageUtils.DebugCategory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,8 +22,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static net.kyori.adventure.text.minimessage.MiniMessage.miniMessage;
 
 public class HubCommand {
 
@@ -46,7 +45,7 @@ public class HubCommand {
                         ))
                 )
                 .executes(commandContext -> {
-                    messageUtils.sendDebugMessage(commandContext.getSource(), "🤖 Executing Hub Command!");
+                    messageUtils.sendDebugMessage(DebugCategory.COMMANDS, commandContext.getSource(), "🤖 Executing Hub Command!");
                     return execute(commandContext);
                 })
                 .then(new DebugCommand(hub).create());
@@ -58,7 +57,7 @@ public class HubCommand {
                                     .requires(source -> (source instanceof Player player) && (lobby.permission.isBlank() || player.hasPermission(lobby.permission)))
                                     // .requires(commandSource -> !command.hidden)
                                     .executes(commandContext -> {
-                                        messageUtils.sendDebugMessage(commandContext.getSource(), "🤖 Executing Hub Command for Lobby: " + s + "!");
+                                        messageUtils.sendDebugMessage(DebugCategory.COMMANDS, commandContext.getSource(), "🤖 Executing Hub Command for Lobby: " + s + "!");
                                         return execute(commandContext, lobby);
                                     }));
                 }
@@ -71,7 +70,7 @@ public class HubCommand {
                                     BrigadierCommand.literalArgumentBuilder(s)
                                             .requires(source -> (source instanceof Player player) && (player.hasPermission(lobby.permission) || lobby.permission.isBlank()))
                                             .executes(commandContext -> {
-                                                messageUtils.broadcastDebugMessage("🤖 " + commandContext.getSource().toString() + " -> Executing Hub Command for Lobby: " + s + "!");
+                                                messageUtils.broadcastDebugMessage(DebugCategory.COMMANDS, "🤖 " + commandContext.getSource().toString() + " -> Executing Hub Command for Lobby: " + s + "!");
                                                 return execute(commandContext, lobby);
                                             })
                             )
@@ -93,14 +92,22 @@ public class HubCommand {
     private int execute(CommandContext<CommandSource> commandContext) {
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
-        messageUtils.broadcastDebugMessage("🤖 " + commandContext.getSource().toString() + " ->  Executing Hub Command");
+        messageUtils.broadcastDebugMessage(DebugCategory.COMMANDS, "🤖 " + commandContext.getSource().toString() + " ->  Executing Hub Command");
         Player player = commandContext.getSource() instanceof Player ? (Player) commandContext.getSource() : null;
         if (player == null) {
-            commandContext.getSource().sendMessage(messageUtils.toMessage(configUtils.config().systemMessages.playersOnlyCommandMessage));
+            commandContext.getSource().sendMessage(messageUtils.i18n(
+                    "proxy.system.players-only",
+                    commandContext.getSource(),
+                    configUtils.config().systemMessages.playersOnlyCommandMessage
+            ));
             return 0;
         }
         if (!player.getCurrentServer().isPresent()) {
-            messageUtils.sendMessage(player, "<red>❌ User is on no Server!");
+            messageUtils.sendMessage(player, messageUtils.i18n(
+                    "proxy.system.no-server",
+                    player,
+                    "<red>❌ User is on no Server!"
+            ));
             return 0;
         }
         if (tryRedirectToParentHub(player)) {
@@ -109,8 +116,13 @@ public class HubCommand {
         var lobbyUtils = Utils.util(LobbyUtils.class);
         var pingResult = lobbyUtils.findBest(player);
         if (pingResult.isEmpty()) {
-            messageUtils.sendMessage(player, configUtils.config().systemMessages.noLobbyFoundMessage, player);
-            messageUtils.sendDebugMessage(player, "<red>❌ No Server found!");
+            messageUtils.sendMessage(player, messageUtils.i18n(
+                    "proxy.system.no-lobby-found",
+                    player,
+                    configUtils.config().systemMessages.noLobbyFoundMessage,
+                    player
+            ));
+            messageUtils.sendDebugMessage(DebugCategory.COMMANDS, player, "<red>❌ No Server found!");
             return 0;
         }
         pingResult.get().connect();
@@ -178,13 +190,13 @@ public class HubCommand {
         var visitedParentLobbies = new LinkedHashSet<String>();
         for (String parentName : orderedUniqueParents) {
             if (parentName.equalsIgnoreCase(currentLobby.name)) {
-                messageUtils.sendDebugMessage(player, "<yellow>⚠️ Parent lobby for " + currentLobby.name + " points to itself; skipping.");
+                messageUtils.sendDebugMessage(DebugCategory.COMMANDS, player, "<yellow>⚠️ Parent lobby for " + currentLobby.name + " points to itself; skipping.");
                 continue;
             }
 
             var candidateLobbies = resolver.resolve(parentName);
             if (candidateLobbies.isEmpty()) {
-                messageUtils.sendDebugMessage(player, "<yellow>⚠️ Parent lobby or group '" + parentName + "' not found in config; skipping.</yellow>");
+                messageUtils.sendDebugMessage(DebugCategory.COMMANDS, player, "<yellow>⚠️ Parent lobby or group '" + parentName + "' not found in config; skipping.</yellow>");
                 continue;
             }
 
@@ -194,25 +206,30 @@ public class HubCommand {
                     continue;
                 }
                 if (!playerUtils.permissionCheck(player, parentLobby)) {
-                    messageUtils.sendDebugMessage(player, "<red>❌ Player lacks permission for parent lobby " + parentLobby.name + ".");
+                    messageUtils.sendDebugMessage(DebugCategory.COMMANDS, player, "<red>❌ Player lacks permission for parent lobby " + parentLobby.name + ".");
                     continue;
                 }
 
                 attempted = true;
                 var target = lobbyUtils.findBestForLobby(player, parentLobby, Set.of(currentServerName));
                 if (target.isEmpty()) {
-                    messageUtils.sendDebugMessage(player, "<red>❌ No available server for parent lobby " + parentLobby.name + ".");
+                    messageUtils.sendDebugMessage(DebugCategory.COMMANDS, player, "<red>❌ No available server for parent lobby " + parentLobby.name + ".");
                     continue;
                 }
 
-                messageUtils.sendDebugMessage(player, "<green>⬆ Sending player to parent lobby " + parentLobby.name + ".");
+                messageUtils.sendDebugMessage(DebugCategory.COMMANDS, player, "<green>⬆ Sending player to parent lobby " + parentLobby.name + ".");
                 target.get().connect();
                 return true;
             }
         }
 
         if (attempted) {
-            messageUtils.sendMessage(player, configUtils.config().systemMessages.noLobbyFoundMessage, player);
+            messageUtils.sendMessage(player, messageUtils.i18n(
+                    "proxy.system.no-lobby-found",
+                    player,
+                    configUtils.config().systemMessages.noLobbyFoundMessage,
+                    player
+            ));
         }
         return attempted;
     }
@@ -297,7 +314,7 @@ public class HubCommand {
                 }
                 var lobby = lobbyByName.get(lobbyKey);
                 if (lobby == null) {
-                    messageUtils.sendDebugMessage(player,
+                    messageUtils.sendDebugMessage(DebugCategory.COMMANDS, player,
                             "<yellow>⚠️ Lobby '" + lobbyName + "' from group '" + group.name + "' not found; skipping.</yellow>");
                     continue;
                 }
@@ -316,18 +333,35 @@ public class HubCommand {
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
         Player player = commandContext.getSource() instanceof Player ? (Player) commandContext.getSource() : null;
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
-        messageUtils.broadcastDebugMessage("🤖 " + commandContext.getSource().toString() + " ->  Executing Hub Command for Lobby: " + lobby.name + "!");
+        messageUtils.broadcastDebugMessage(DebugCategory.COMMANDS, "🤖 " + commandContext.getSource().toString() + " ->  Executing Hub Command for Lobby: " + lobby.name + "!");
         if (player == null) {
-            commandContext.getSource().sendMessage(miniMessage().deserialize(configUtils.config().systemMessages.playersOnlyCommandMessage));
+            commandContext.getSource().sendMessage(messageUtils.i18n(
+                    "proxy.system.players-only",
+                    commandContext.getSource(),
+                    configUtils.config().systemMessages.playersOnlyCommandMessage
+            ));
             return 1;
         }
         var currentServer = player.getCurrentServer().orElse(null);
         if (currentServer == null) {
-            messageUtils.sendMessage(player, "<red>❌ User is on no Server!");
+            messageUtils.sendMessage(player, messageUtils.i18n(
+                    "proxy.system.no-server",
+                    player,
+                    "<red>❌ User is on no Server!"
+            ));
             return 1;
         }
         if (lobby.filter.matcher(currentServer.getServerInfo().getName()).matches()) {
-            messageUtils.sendMessage(player, lobby.messages().alreadyConnectedMessage == null ? configUtils.config().messages.alreadyConnectedMessage : lobby.messages().alreadyConnectedMessage, currentServer.getServer(), lobby);
+            String fallback = lobby.messages().alreadyConnectedMessage == null
+                    ? configUtils.config().messages.alreadyConnectedMessage
+                    : lobby.messages().alreadyConnectedMessage;
+            messageUtils.sendMessage(player, messageUtils.i18n(
+                    "proxy.message.already-connected",
+                    player,
+                    fallback,
+                    currentServer.getServer(),
+                    lobby
+            ));
             return 1;
         }
 

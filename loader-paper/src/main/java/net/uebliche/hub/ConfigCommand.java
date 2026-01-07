@@ -3,6 +3,7 @@ package net.uebliche.hub;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -55,7 +56,7 @@ class ConfigCommand extends Command implements TabCompleter {
     @Override
     public boolean execute(CommandSender sender, String label, String[] args) {
         if (!sender.hasPermission("hub.config")) {
-            sender.sendMessage(Component.text("You do not have permission.", NamedTextColor.RED));
+            sender.sendMessage(plugin.translate(sender, "lobby.command.no-permission"));
             return true;
         }
         if (args.length == 0) {
@@ -66,12 +67,13 @@ class ConfigCommand extends Command implements TabCompleter {
         switch (sub) {
             case "reload" -> {
                 plugin.loadConfig();
-                sender.sendMessage(Component.text("Config reloaded.", NamedTextColor.GREEN));
+                sender.sendMessage(plugin.translate(sender, "lobby.command.config.reloaded"));
                 return true;
             }
             case "set" -> {
                 if (args.length < 3) {
-                    sender.sendMessage(Component.text("Usage: /" + label + " set <path> <value>", NamedTextColor.YELLOW));
+                    sender.sendMessage(plugin.translate(sender, "lobby.command.config.set.usage",
+                            Placeholder.unparsed("label", label)));
                     return true;
                 }
                 String path = args[1];
@@ -79,10 +81,22 @@ class ConfigCommand extends Command implements TabCompleter {
                 if (applyValue(path, value)) {
                     plugin.saveConfig();
                     plugin.loadConfig();
-                    sender.sendMessage(Component.text("Updated " + path + " -> " + value, NamedTextColor.GREEN));
+                    sender.sendMessage(plugin.translate(sender, "lobby.command.config.set.updated",
+                            Placeholder.unparsed("path", path),
+                            Placeholder.unparsed("value", value)));
                 } else {
-                    sender.sendMessage(Component.text("Could not update " + path + " with value '" + value + "'.", NamedTextColor.RED));
+                    sender.sendMessage(plugin.translate(sender, "lobby.command.config.set.failed",
+                            Placeholder.unparsed("path", path),
+                            Placeholder.unparsed("value", value)));
                 }
+                return true;
+            }
+            case "npc" -> {
+                handleNpcCommand(sender, label, Arrays.copyOfRange(args, 1, args.length));
+                return true;
+            }
+            case "jump", "jr", "jumprun" -> {
+                handleJumpRunCommand(sender, Arrays.copyOfRange(args, 1, args.length));
                 return true;
             }
             case "show" -> {
@@ -92,7 +106,9 @@ class ConfigCommand extends Command implements TabCompleter {
                 }
                 String path = args[1];
                 Object current = plugin.getConfig().get(path);
-                sender.sendMessage(Component.text(path + " = " + String.valueOf(current), NamedTextColor.AQUA));
+                sender.sendMessage(plugin.translate(sender, "lobby.command.config.get.value",
+                        Placeholder.unparsed("path", path),
+                        Placeholder.unparsed("value", String.valueOf(current))));
                 return true;
             }
             default -> {
@@ -170,7 +186,7 @@ class ConfigCommand extends Command implements TabCompleter {
     }
 
     private void sendOverview(CommandSender sender) {
-        sender.sendMessage(Component.text("HUB Config:", NamedTextColor.GOLD));
+        sender.sendMessage(plugin.translate(sender, "lobby.command.config.info.header"));
         List<String> paths = new ArrayList<>(COMMON_PATHS);
         paths.addAll(navigatorEntryPaths());
         for (String path : paths) {
@@ -184,7 +200,168 @@ class ConfigCommand extends Command implements TabCompleter {
                             .clickEvent(ClickEvent.suggestCommand("/hubconfig set " + path + " ")));
             sender.sendMessage(line);
         }
-        sender.sendMessage(Component.text("Use /hubconfig set <path> <value> (use '|' to separate lore lines).", NamedTextColor.GRAY));
+        sender.sendMessage(plugin.translate(sender, "lobby.command.config.info.hint"));
+        sender.sendMessage(plugin.translate(sender, "lobby.command.config.info.jump"));
+    }
+
+    private void handleJumpRunCommand(CommandSender sender, String[] args) {
+        if (args.length == 0) {
+            sender.sendMessage(plugin.translate(sender, "lobby.command.jump.usage"));
+            return;
+        }
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "generate", "regen" -> {
+                plugin.generateJumpRunCourse(true);
+                sender.sendMessage(plugin.translate(sender, "lobby.command.jump.generated"));
+            }
+            case "start" -> {
+                if (sender instanceof Player player) {
+                    plugin.startJumpRun(player);
+                } else {
+                    sender.sendMessage(plugin.translate(sender, "lobby.command.jump.only-player-start"));
+                }
+            }
+            case "stop", "cancel" -> {
+                if (sender instanceof Player player) {
+                    plugin.stopJumpRun(player);
+                } else {
+                    sender.sendMessage(plugin.translate(sender, "lobby.command.jump.only-player-stop"));
+                }
+            }
+            case "info" -> plugin.sendJumpRunInfo(sender);
+            default -> sender.sendMessage(plugin.translate(sender, "lobby.command.jump.usage"));
+        }
+    }
+
+    private void handleNpcCommand(CommandSender sender, String label, String[] args) {
+        if (args.length == 0) {
+            sendNpcUsage(sender, label);
+            return;
+        }
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "add" -> handleNpcAdd(sender, label, args);
+            case "remove" -> handleNpcRemove(sender, label, args);
+            case "list" -> handleNpcList(sender);
+            case "enable" -> handleNpcEnable(sender, label, args);
+            default -> sendNpcUsage(sender, label);
+        }
+    }
+
+    private void sendNpcUsage(CommandSender sender, String label) {
+        sender.sendMessage(plugin.translate(sender, "lobby.command.npc.header"));
+        sender.sendMessage(plugin.translate(sender, "lobby.command.npc.usage.add",
+                Placeholder.unparsed("label", label)));
+        sender.sendMessage(plugin.translate(sender, "lobby.command.npc.usage.remove",
+                Placeholder.unparsed("label", label)));
+        sender.sendMessage(plugin.translate(sender, "lobby.command.npc.usage.list",
+                Placeholder.unparsed("label", label)));
+        sender.sendMessage(plugin.translate(sender, "lobby.command.npc.usage.enable",
+                Placeholder.unparsed("label", label)));
+    }
+
+    private void handleNpcAdd(CommandSender sender, String label, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.translate(sender, "lobby.npc.only-player-add"));
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(plugin.translate(sender, "lobby.command.npc.usage.add",
+                    Placeholder.unparsed("label", label)));
+            return;
+        }
+        String id = args[1];
+        String action = args[2].toLowerCase(Locale.ROOT);
+        String server = args.length >= 4 ? args[3] : "";
+        if (!isNpcAction(action)) {
+            sender.sendMessage(plugin.translate(sender, "lobby.npc.action.invalid"));
+            return;
+        }
+        if ("server".equals(action) && server.isBlank()) {
+            sender.sendMessage(plugin.translate(sender, "lobby.npc.server.required"));
+            return;
+        }
+        ConfigurationSection entries = plugin.getConfig().getConfigurationSection("lobby-npcs.entries");
+        if (entries == null) {
+            entries = plugin.getConfig().createSection("lobby-npcs.entries");
+        }
+        ConfigurationSection entry = entries.getConfigurationSection(id);
+        if (entry == null) {
+            entry = entries.createSection(id);
+        }
+        var loc = player.getLocation();
+        entry.set("world", loc.getWorld() != null ? loc.getWorld().getName() : "world");
+        entry.set("x", loc.getX());
+        entry.set("y", loc.getY());
+        entry.set("z", loc.getZ());
+        entry.set("yaw", loc.getYaw());
+        entry.set("pitch", loc.getPitch());
+        entry.set("name", "<gold>" + id);
+        entry.set("entity", entry.getString("entity", "VILLAGER"));
+        entry.set("action", action);
+        if (!server.isBlank()) {
+            entry.set("server", server);
+        }
+        plugin.getConfig().set("lobby-npcs.enabled", true);
+        plugin.saveConfig();
+        plugin.loadConfig();
+        sender.sendMessage(plugin.translate(sender, "lobby.npc.saved",
+                Placeholder.unparsed("id", id)));
+    }
+
+    private void handleNpcRemove(CommandSender sender, String label, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.translate(sender, "lobby.command.npc.usage.remove",
+                    Placeholder.unparsed("label", label)));
+            return;
+        }
+        String id = args[1];
+        ConfigurationSection entries = plugin.getConfig().getConfigurationSection("lobby-npcs.entries");
+        if (entries == null || !entries.isConfigurationSection(id)) {
+            sender.sendMessage(plugin.translate(sender, "lobby.npc.not-found",
+                    Placeholder.unparsed("id", id)));
+            return;
+        }
+        entries.set(id, null);
+        plugin.saveConfig();
+        plugin.loadConfig();
+        sender.sendMessage(plugin.translate(sender, "lobby.npc.removed",
+                Placeholder.unparsed("id", id)));
+    }
+
+    private void handleNpcList(CommandSender sender) {
+        ConfigurationSection entries = plugin.getConfig().getConfigurationSection("lobby-npcs.entries");
+        if (entries == null || entries.getKeys(false).isEmpty()) {
+            sender.sendMessage(plugin.translate(sender, "lobby.npc.none"));
+            return;
+        }
+        sender.sendMessage(plugin.translate(sender, "lobby.npc.list.header"));
+        for (String key : entries.getKeys(false)) {
+            sender.sendMessage(plugin.translate(sender, "lobby.npc.list.entry",
+                    Placeholder.unparsed("id", key)));
+        }
+    }
+
+    private void handleNpcEnable(CommandSender sender, String label, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.translate(sender, "lobby.command.npc.usage.enable",
+                    Placeholder.unparsed("label", label)));
+            return;
+        }
+        boolean enabled = parseBoolean(args[1]);
+        plugin.getConfig().set("lobby-npcs.enabled", enabled);
+        plugin.saveConfig();
+        plugin.loadConfig();
+        Component state = enabled
+                ? plugin.translate(sender, "lobby.state.enabled")
+                : plugin.translate(sender, "lobby.state.disabled");
+        sender.sendMessage(plugin.translate(sender, "lobby.npc.enabled",
+                Placeholder.component("state", state)));
+    }
+
+    private boolean isNpcAction(String raw) {
+        return "server".equals(raw) || "lobby".equals(raw) || "teleport".equals(raw);
     }
 
     private List<String> navigatorEntryPaths() {
@@ -214,9 +391,36 @@ class ConfigCommand extends Command implements TabCompleter {
             return List.of();
         }
         if (args.length == 1) {
-            return List.of("reload", "set", "show").stream()
+            return List.of("reload", "set", "show", "npc").stream()
                     .filter(opt -> opt.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .toList();
+        }
+        if (args[0].equalsIgnoreCase("npc")) {
+            if (args.length == 2) {
+                return List.of("add", "remove", "list", "enable").stream()
+                        .filter(opt -> opt.startsWith(args[1].toLowerCase(Locale.ROOT)))
+                        .toList();
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("remove")) {
+                ConfigurationSection entries = plugin.getConfig().getConfigurationSection("lobby-npcs.entries");
+                if (entries == null) {
+                    return List.of();
+                }
+                return entries.getKeys(false).stream()
+                        .filter(key -> key.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
+                        .toList();
+            }
+            if (args.length == 4 && args[1].equalsIgnoreCase("add")) {
+                return List.of("server", "lobby", "teleport").stream()
+                        .filter(opt -> opt.startsWith(args[3].toLowerCase(Locale.ROOT)))
+                        .toList();
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("enable")) {
+                return List.of("true", "false").stream()
+                        .filter(opt -> opt.startsWith(args[2].toLowerCase(Locale.ROOT)))
+                        .toList();
+            }
+            return List.of();
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("show"))) {
             List<String> paths = new ArrayList<>(COMMON_PATHS);

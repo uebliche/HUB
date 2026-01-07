@@ -9,9 +9,9 @@ compass:
     material: MAGMA_CREAM
     slot: 0
     allow-move: false
-    allow-drop: false
-    drop-on-death: true
-    restore-on-respawn: true
+  allow-drop: false
+  drop-on-death: true
+  restore-on-respawn: true
   list-item:
     name: "<gold><lobby>"
     lore:
@@ -92,6 +92,13 @@ navigator:
       pitch: 0
       slot: 31
 
+i18n:
+  default-locale: en_us
+  use-client-locale: true
+  overrides:
+    en_us: {}
+    de_de: {}
+
 spawn-teleport:
   enabled: false
   world: world
@@ -101,6 +108,86 @@ spawn-teleport:
   yaw: 0
   pitch: 0
 
+join-teleport:
+  mode: none # none | spawn | last
+  delay-seconds: 0
+  last-location:
+    max-age-seconds: 0
+
+jump-run:
+  enabled: false
+  course-id: default
+  world: world
+  blocks: 20
+  spacing:
+    min: 2.5
+    max: 4.5
+  y-offset:
+    min: -1
+    max: 2
+  height:
+    min: 70
+    max: 140
+  block: QUARTZ_BLOCK
+  start-block: EMERALD_BLOCK
+  finish-block: GOLD_BLOCK
+  teleport-on-start: true
+
+storage:
+  server-id: lobby
+  scores:
+    primary: local-sql # sql | mongo | redis | local-sql
+  locations:
+    primary: local-sql # sql | mongo | redis | local-sql
+    cache: none # none | redis
+  fallback:
+    enabled: true
+  sql:
+    url: jdbc:mariadb://localhost:3306/hub
+    user: hub
+    password: ""
+    driver: org.mariadb.jdbc.Driver
+  local-sql:
+    url: jdbc:sqlite:plugins/HUB/hub.db
+    driver: org.sqlite.JDBC
+  mongo:
+    uri: mongodb://localhost:27017
+    database: hub
+    collection-prefix: hub_
+  redis:
+    uri: redis://localhost:6379
+    database: 0
+    key-prefix: hub
+
+lobby-npcs:
+  enabled: false
+  entries:
+    lobby:
+      world: world
+      x: 0
+      y: 64
+      z: 0
+      yaw: 0
+      pitch: 0
+      name: "<gold>Lobby"
+      entity: VILLAGER
+      action: server
+      server: lobby
+
+lobby-signs:
+  enabled: false
+  entries:
+    lobby:
+      world: world
+      x: 2
+      y: 64
+      z: 0
+      lines:
+        - "<gold>Lobby"
+        - "<gray>Click to join"
+      action: server
+      server: lobby
+
 gameplay:
   disable-damage: true
   disable-hunger: true
@@ -108,3 +195,7 @@ gameplay:
 
 minestom:
   velocity-secret: "hubsecret"
+
+bstats:
+  enabled: true
+  service-id: 0 # https://bstats.org/what-is-my-plugin-id

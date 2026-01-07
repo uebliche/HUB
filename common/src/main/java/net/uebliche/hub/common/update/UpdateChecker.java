@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 public final class UpdateChecker {
+    public static final String MODRINTH_PROJECT_ID = "HrTclB8n";
     private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .build();

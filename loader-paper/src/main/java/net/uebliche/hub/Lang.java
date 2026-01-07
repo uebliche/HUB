@@ -18,14 +18,16 @@ public class Lang {
     private final YamlConfiguration yaml;
     private final MiniMessage mini;
     private final String localeCode;
+    private final Map<String, String> overrides;
 
-    private Lang(YamlConfiguration yaml, MiniMessage mini, String localeCode) {
+    private Lang(YamlConfiguration yaml, MiniMessage mini, String localeCode, Map<String, String> overrides) {
         this.yaml = yaml;
         this.mini = mini;
         this.localeCode = localeCode;
+        this.overrides = overrides == null ? Collections.emptyMap() : overrides;
     }
 
-    public static Lang load(JavaPlugin plugin, String code, MiniMessage mini) {
+    public static Lang load(JavaPlugin plugin, String code, MiniMessage mini, Map<String, String> overrides) {
         File langDir = new File(plugin.getDataFolder(), "lang");
         if (!langDir.exists()) {
             langDir.mkdirs();
@@ -48,15 +50,18 @@ public class Lang {
         if (!langFile.exists()) {
             langFile = new File(langDir, "en_us.yml");
             if (!langFile.exists()) {
-                return new Lang(new YamlConfiguration(), mini, code);
+                return new Lang(new YamlConfiguration(), mini, code, overrides);
             }
         }
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(langFile);
-        return new Lang(yaml, mini, code);
+        return new Lang(yaml, mini, code, overrides);
     }
 
     public Component component(String key, TagResolver... resolvers) {
-        String raw = yaml.getString(key);
+        String raw = overrides.get(key);
+        if (raw == null) {
+            raw = yaml.getString(key);
+        }
         if (raw == null) {
             raw = net.uebliche.hub.common.i18n.I18n.raw(localeCode, key);
         }
@@ -64,6 +69,10 @@ public class Lang {
     }
 
     public List<Component> list(String key, TagResolver... resolvers) {
+        String override = overrides.get(key);
+        if (override != null) {
+            return List.of(mini.deserialize(override, resolvers));
+        }
         List<String> rawList = yaml.getStringList(key);
         if (rawList == null || rawList.isEmpty()) {
             return List.of(component(key, resolvers));

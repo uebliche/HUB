@@ -14,8 +14,19 @@ HUB is a lobby routing plugin for Minecraft networks. It runs primarily on Veloc
 - Debug toolkit for live checks and fast reloads.
 - Web config builder to edit without YAML.
 
+## Feature List
+- Lobby routing on Velocity with priorities, permissions, and parent groups.
+- Auto-select on join and on kick, with fallback rules.
+- Regex filters for lobby matching and command visibility.
+- Lobby NPCs and sign displays (Paper, Fabric, Minestom).
+- NPC lines with placeholders for server, lobby, and player counts.
+- Join teleport options (spawn or last location, with delay).
+- Update checking against Modrinth releases.
+- Web config builder for YAML-free editing.
+- Recommended for Docker-based networks (auto-registration friendly).
+
 ## Docs
-Alle Details, Setup, Konfiguration und der Web-Config-Editor sind hier:
+All details, setup, configuration, and the web config editor are here:
 https://hub.uebliche.info/
 
 ## Downloads

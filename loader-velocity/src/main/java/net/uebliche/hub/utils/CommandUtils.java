@@ -6,6 +6,8 @@ import com.velocitypowered.api.proxy.Player;
 import net.uebliche.hub.Hub;
 import net.uebliche.hub.commands.DebugCommand;
 import net.uebliche.hub.commands.HubCommand;
+import net.uebliche.hub.utils.ConfigUtils;
+import net.uebliche.hub.utils.MessageUtils;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -49,10 +51,16 @@ public class CommandUtils extends Utils<CommandUtils> {
         registerCommand(
                 hub.server().getCommandManager().metaBuilder("hub").plugin(hub).build(),
                 new BrigadierCommand(
-                        BrigadierCommand.literalArgumentBuilder("hub")
+                                BrigadierCommand.literalArgumentBuilder("hub")
                                 .executes(commandContext -> {
                                     if (!(commandContext.getSource() instanceof Player player)) {
-                                        commandContext.getSource().sendMessage(Utils.util(MessageUtils.class).toMessage(Utils.util(ConfigUtils.class).config().systemMessages.playersOnlyCommandMessage));
+                                        ConfigUtils configUtils = Utils.util(ConfigUtils.class);
+                                        MessageUtils messageUtils = Utils.util(MessageUtils.class);
+                                        commandContext.getSource().sendMessage(messageUtils.i18n(
+                                                "proxy.system.players-only",
+                                                commandContext.getSource(),
+                                                configUtils.config().systemMessages.playersOnlyCommandMessage
+                                        ));
                                     } else {
                                         hub.server().getConfiguration().getAttemptConnectionOrder().stream().findAny().ifPresent(attemptConnectionOrder -> {
                                             player.createConnectionRequest(hub.server().getServer(attemptConnectionOrder).get()).connect().thenAccept(connection -> {

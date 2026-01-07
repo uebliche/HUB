@@ -34,15 +34,67 @@ public final class I18n {
             Type type = new TypeToken<Map<String, String>>() {}.getType();
             Map<String, String> map = new Gson().fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), type);
             if (map != null) {
-                TRANSLATIONS.put(locale.toLowerCase(), map);
+                registerLocale(locale, map, true);
             }
         } catch (Exception ignored) {
         }
     }
 
+    public static synchronized boolean reloadFromClasspath(String locale) {
+        if (locale == null || locale.isBlank()) {
+            return false;
+        }
+        String normalized = normalizeLocale(locale);
+        try (var in = I18n.class.getClassLoader().getResourceAsStream("i18n/" + normalized + ".json")) {
+            if (in == null) {
+                return false;
+            }
+            Type type = new TypeToken<Map<String, String>>() {}.getType();
+            Map<String, String> map = new Gson().fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), type);
+            if (map != null) {
+                registerLocale(normalized, map, true);
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    public static synchronized void registerLocale(String locale, Map<String, String> entries, boolean replace) {
+        if (locale == null || locale.isBlank() || entries == null) {
+            return;
+        }
+        String key = normalizeLocale(locale);
+        Map<String, String> base = replace ? new HashMap<>() : new HashMap<>(TRANSLATIONS.getOrDefault(key, new HashMap<>()));
+        entries.forEach((entryKey, value) -> {
+            if (entryKey != null && value != null) {
+                base.put(entryKey, value);
+            }
+        });
+        TRANSLATIONS.put(key, base);
+    }
+
+    public static synchronized void registerLocale(String locale, Map<String, String> entries) {
+        registerLocale(locale, entries, false);
+    }
+
+    public static synchronized void clearLocale(String locale) {
+        if (locale == null) {
+            return;
+        }
+        TRANSLATIONS.remove(normalizeLocale(locale));
+    }
+
+    public static String normalizeLocale(String locale) {
+        if (locale == null) {
+            return FALLBACK;
+        }
+        return locale.trim().toLowerCase().replace('-', '_');
+    }
+
     private static Map<String, String> localeMap(String locale) {
         if (locale != null) {
-            String lc = locale.toLowerCase();
+            String lc = normalizeLocale(locale);
             if (TRANSLATIONS.containsKey(lc)) {
                 return TRANSLATIONS.get(lc);
             }

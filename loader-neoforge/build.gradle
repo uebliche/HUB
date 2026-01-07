@@ -1,4 +1,9 @@
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 plugins {
     id 'java'
@@ -55,6 +60,107 @@ neoForge {
         server {
             server()
             programArguments.addAll('--nogui')
+        }
+    }
+}
+
+def neoformRuntimeOverride = (System.getenv('NEOFORM_RUNTIME_VERSION') ?: project.findProperty('neoformRuntimeVersion'))?.toString()
+def neoformVerbose = (System.getenv('NEOFORM_VERBOSE') ?: project.findProperty('neoformVerbose') ?: 'false').toString().toBoolean()
+def neoformDecompileXmx = (System.getenv('NEOFORM_DECOMPILE_XMX') ?: project.findProperty('neoformDecompileXmx') ?: '3G').toString()
+def neoformVineflowerVersion = (System.getenv('NEOFORM_VINEFLOWER_VERSION') ?: project.findProperty('neoformVineflowerVersion') ?: 'org.vineflower:vineflower:1.11.2').toString()
+neoFormRuntime {
+    if (neoformRuntimeOverride) {
+        version = neoformRuntimeOverride
+    }
+    verbose = neoformVerbose
+}
+
+def patchNeoformConfig = { File neoformZip ->
+    ZipFile zipFile = new ZipFile(neoformZip)
+    ZipEntry configEntry = zipFile.getEntry('config.json')
+    if (configEntry == null) {
+        zipFile.close()
+        return false
+    }
+
+    def configText = zipFile.getInputStream(configEntry).getText('UTF-8')
+    def config = new JsonSlurper().parseText(configText)
+    def decompile = config?.functions?.decompile
+    if (decompile == null) {
+        zipFile.close()
+        return false
+    }
+
+    boolean changed = false
+    def desiredJvmArgs = ["-Xmx${neoformDecompileXmx}".toString()]
+    if (decompile.jvmargs != desiredJvmArgs) {
+        decompile.jvmargs = desiredJvmArgs
+        changed = true
+    }
+    if (neoformVineflowerVersion && decompile.version != neoformVineflowerVersion) {
+        decompile.version = neoformVineflowerVersion
+        changed = true
+    }
+    def args = (decompile.args ?: []) as List
+    def logArgIndex = args.findIndexOf { it.toString().startsWith('--log-level=') }
+    if (logArgIndex >= 0) {
+        if (args[logArgIndex] != '--log-level=TRACE') {
+            args[logArgIndex] = '--log-level=TRACE'
+            changed = true
+        }
+    } else {
+        args.add('--log-level=TRACE')
+        changed = true
+    }
+    decompile.args = args
+
+    if (!changed) {
+        zipFile.close()
+        return false
+    }
+
+    File tempZip = File.createTempFile('neoform', '.zip', neoformZip.parentFile)
+    ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempZip))
+    zipFile.entries().each { entry ->
+        ZipEntry newEntry = new ZipEntry(entry.name)
+        newEntry.time = entry.time
+        zos.putNextEntry(newEntry)
+        if (entry.name == 'config.json') {
+            def patched = JsonOutput.prettyPrint(JsonOutput.toJson(config))
+            zos.write(patched.getBytes('UTF-8'))
+        } else {
+            zipFile.getInputStream(entry).withStream { input ->
+                input.transferTo(zos)
+            }
+        }
+        zos.closeEntry()
+    }
+    zos.close()
+    zipFile.close()
+
+    if (!neoformZip.delete()) {
+        throw new GradleException("Neoform patch failed: could not replace ${neoformZip}")
+    }
+    if (!tempZip.renameTo(neoformZip)) {
+        throw new GradleException("Neoform patch failed: could not rename ${tempZip} to ${neoformZip}")
+    }
+    return true
+}
+
+tasks.matching { it.name == "createMinecraftArtifacts" }.configureEach {
+    doFirst {
+        def userHome = gradle.gradleUserHomeDir
+        def pattern = "**/net.neoforged/neoform/**/neoform-${mcVer}-*.zip"
+        def zips = fileTree(dir: userHome, includes: [pattern]).files
+        if (zips.isEmpty()) {
+            logger.lifecycle("Neoform patch: no zip found for ${mcVer} under ${userHome}")
+            return
+        }
+        def targetZip = zips.max { it.lastModified() }
+        if (patchNeoformConfig(targetZip)) {
+            logger.lifecycle("Neoform patch: updated ${targetZip}")
+        } else {
+            logger.lifecycle("Neoform patch: already up to date ${targetZip}")
         }
     }
 }

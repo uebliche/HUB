@@ -7,35 +7,74 @@ services:
     working_dir: /workspace
     volumes:
       - ./:/workspace
+      - gradle-cache:/gradle-cache
       # Use a Docker-specific Velocity config pointing to the limbo services
       - ./docker/velocity.docker.toml:/workspace/loader-velocity/run/velocity.toml
       - ./docker/plugins.hub:/workspace/loader-velocity/run/plugins/hub
+      - ./docker/plugins.dockbridge:/workspace/loader-velocity/run/plugins/dockbridge
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       GRADLE_USER_HOME: /gradle-cache/velocity
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/velocity-project
       VELOCITY_VERSION: ${VELOCITY_VERSION:-latest}
       HUB_DEBUG: "true"
+      JAVA_TOOL_OPTIONS: ${VELOCITY_JAVA_TOOL_OPTIONS:--Xms256M -Xmx768M -XX:+UseG1GC}
+      GRADLE_OPTS: ${VELOCITY_GRADLE_OPTS:--Dorg.gradle.jvmargs=-Xmx768M -Dorg.gradle.workers.max=2}
     command:
       - bash
       - -lc
       - |
         set -euo pipefail
-        tmp=/workspace/gradlew-docker-$$$$
+        tmp=$$(mktemp /workspace/gradlew-docker-XXXXXX)
         trap 'rm -f "$$tmp"' EXIT
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
         mkdir -p /gradle-cache/velocity
+        mkdir -p /workspace/loader-velocity/run/plugins
+        dockbridge_target=/workspace/loader-velocity/run/plugins/DockBridge.jar
+        if [ "$${DOCKBRIDGE_REFRESH:-0}" != "1" ] && [ -s "$$dockbridge_target" ]; then
+          echo "Using cached DockBridge.jar (set DOCKBRIDGE_REFRESH=1 to update)."
+        else
+          if ! command -v curl >/dev/null || ! command -v jq >/dev/null; then
+            apt-get update -y >/dev/null && apt-get install -y --no-install-recommends curl jq >/dev/null
+          fi
+          echo "Downloading DockBridge from Modrinth..."
+          dockbridge_json=$$(curl -fsSL "https://api.modrinth.com/v2/project/dockbridge/version?loaders=%5B%22velocity%22%5D")
+          dockbridge_version=$$(printf '%s' "$$dockbridge_json" | jq -r '.[0].version_number // .[0].name // "unknown"')
+          dockbridge_url=$$(printf '%s' "$$dockbridge_json" | jq -r '.[0].files[] | select(.primary==true) | .url' | head -n 1)
+          dockbridge_sha1=$$(printf '%s' "$$dockbridge_json" | jq -r '.[0].files[] | select(.primary==true) | .hashes.sha1' | head -n 1)
+          if [ -z "$$dockbridge_url" ] || [ "$$dockbridge_url" = "null" ]; then
+            dockbridge_url=$$(printf '%s' "$$dockbridge_json" | jq -r '.[0].files[0].url')
+            dockbridge_sha1=$$(printf '%s' "$$dockbridge_json" | jq -r '.[0].files[0].hashes.sha1')
+          fi
+          if [ -z "$$dockbridge_url" ] || [ "$$dockbridge_url" = "null" ]; then
+            echo "Failed to resolve DockBridge download URL from Modrinth." >&2
+            exit 1
+          fi
+          curl -fsSL "$$dockbridge_url" -o "$$dockbridge_target"
+          if command -v sha1sum >/dev/null; then
+            dockbridge_local_sha1=$$(sha1sum "$$dockbridge_target" | awk '{print $$1}')
+          else
+            dockbridge_local_sha1="(sha1sum missing)"
+          fi
+          echo "DockBridge Modrinth version: $$dockbridge_version"
+          echo "DockBridge Modrinth sha1: $$dockbridge_sha1"
+          echo "DockBridge local sha1: $$dockbridge_local_sha1"
+        fi
         # reset plugin configs to defaults each run
         rm -f /workspace/loader-velocity/run/plugins/hub/config.yml
         touch /workspace/loader-velocity/run/plugins/hub/data-dump.yml
         mkdir -p /workspace/loader-velocity/run
         cp /workspace/docker/velocity.forwarding.secret /workspace/loader-velocity/run/forwarding.secret
-        rm -rf /workspace/common/build /workspace/loader-velocity/build
-        rm -rf /gradle-cache/velocity/caches/fabric-loom
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /workspace/common/build /workspace/loader-velocity/build
+          rm -rf /gradle-cache/velocity/caches/fabric-loom
+        fi
         "$$tmp" --gradle-user-home /gradle-cache/velocity --project-cache-dir /gradle-cache/velocity-project :loader-velocity:runVelocity --no-daemon
     depends_on:
       - paper
       - minestom
+      - minigames-lobby
       - ffa
     ports:
       - "25577:25577"
@@ -51,16 +90,24 @@ services:
     working_dir: /workspace
     volumes:
       - ./:/workspace
+      - gradle-cache:/gradle-cache
     environment:
       GRADLE_USER_HOME: /gradle-cache/paper
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/paper-project
       PAPER_VERSION: ${PAPER_VERSION:-latest}
+      PAPER_RUN_VERSION: ${PAPER_RUN_VERSION:-1.21.11}
+      JAVA_TOOL_OPTIONS: ${PAPER_JAVA_TOOL_OPTIONS:--Xms512M -Xmx1G -XX:+UseG1GC}
+      GRADLE_OPTS: ${PAPER_GRADLE_OPTS:--Dorg.gradle.jvmargs=-Xmx1G -Dorg.gradle.workers.max=2}
+    labels:
+      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.server_name: "lobby"
+      net.uebliche.dockbridge.server_port: "25565"
     command:
       - bash
       - -lc
       - |
         set -euo pipefail
-        tmp=/workspace/gradlew-docker-$$$$
+        tmp=$$(mktemp /workspace/gradlew-docker-XXXXXX)
         trap 'rm -f "$$tmp"' EXIT
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
@@ -69,8 +116,10 @@ services:
         rm -f /workspace/loader-paper/run/plugins/HUB/config.yml
         mkdir -p /workspace/loader-paper/run
         echo "eula=true" > /workspace/loader-paper/run/eula.txt
-        rm -rf /workspace/common/build /workspace/loader-paper/build
-        rm -rf /gradle-cache/paper/caches/fabric-loom
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /workspace/common/build /workspace/loader-paper/build
+          rm -rf /gradle-cache/paper/caches/fabric-loom
+        fi
         "$$tmp" --gradle-user-home /gradle-cache/paper --project-cache-dir /gradle-cache/paper-project :loader-paper:runServer --no-daemon
     networks:
       - hub
@@ -80,23 +129,45 @@ services:
     working_dir: /workspace
     volumes:
       - ./:/workspace
+      - gradle-cache:/gradle-cache
     environment:
       GRADLE_USER_HOME: /gradle-cache/minestom-ffa
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/minestom-ffa-project
       VELOCITY_SECRET: "secret"
+      ORG_GRADLE_JAVA_INSTALLATIONS_PATHS: /opt/java/openjdk
+    labels:
+      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.server_name: "ffa"
+      net.uebliche.dockbridge.server_port: "25565"
     command:
       - bash
       - -lc
       - |
         set -euo pipefail
-        apt-get update -y >/dev/null && apt-get install -y --no-install-recommends openjdk-21-jdk-headless >/dev/null
-        export JAVA_HOME_21=/usr/lib/jvm/java-21-openjdk-amd64
-        export PATH="/usr/lib/jvm/java-21-openjdk-amd64/bin:$$PATH"
-        tmp=/workspace/gradlew-docker-$$$$
+        mkdir -p /usr/lib/jvm
+        if ! ls /usr/lib/jvm/java-21-openjdk-* >/dev/null 2>&1; then
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends openjdk-21-jdk-headless
+          rm -rf /var/lib/apt/lists/*
+        fi
+        export JAVA_HOME_25=/opt/java/openjdk
+        export JAVA_HOME_21=$$(ls -d /usr/lib/jvm/java-21-openjdk-* | head -n1)
+        ln -sfn "$$JAVA_HOME_25" /usr/lib/jvm/java-25-openjdk-arm64
+        ln -sfn "$$JAVA_HOME_25" /usr/lib/jvm/java-25-openjdk-amd64
+        ln -sfn "$$JAVA_HOME_21" /usr/lib/jvm/java-21-openjdk-arm64
+        ln -sfn "$$JAVA_HOME_21" /usr/lib/jvm/java-21-openjdk-amd64
+        export JAVA_HOME="$$JAVA_HOME_25"
+        export PATH="$$JAVA_HOME_25/bin:$$PATH"
+        export JAVA_TOOL_OPTIONS="--enable-native-access=ALL-UNNAMED ${JAVA_TOOL_OPTIONS:-}"
+        export ORG_GRADLE_JAVA_INSTALLATIONS_PATHS="$$JAVA_HOME_25:$$JAVA_HOME_21"
+        tmp=$$(mktemp /workspace/gradlew-docker-XXXXXX)
         trap 'rm -f "$$tmp"' EXIT
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
-        rm -rf /gradle-cache/minestom-ffa
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /gradle-cache/minestom-ffa
+        fi
         mkdir -p /gradle-cache/minestom-ffa /gradle-cache/minestom-ffa-project
         "$$tmp" --gradle-user-home /gradle-cache/minestom-ffa --project-cache-dir /gradle-cache/minestom-ffa-project :loader-minestom-ffa:run --no-daemon
     networks:
@@ -107,17 +178,25 @@ services:
     working_dir: /workspace
     volumes:
       - ./:/workspace
+      - gradle-cache:/gradle-cache
     environment:
       GRADLE_USER_HOME: /gradle-cache/fabric
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/fabric-project
       mcVersion: 1.21.11
       INCLUDE_FABRIC: "true"
+      JAVA_TOOL_OPTIONS: ${FABRIC_JAVA_TOOL_OPTIONS:--Xms512M -Xmx1G -XX:+UseG1GC}
+      GRADLE_OPTS: ${FABRIC_GRADLE_OPTS:--Dorg.gradle.jvmargs=-Xmx1G -Dorg.gradle.workers.max=1 -Dorg.gradle.daemon=false}
+      FABRIC_GRADLE_ARGS: ${FABRIC_GRADLE_ARGS:-}
+    labels:
+      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.server_name: "lobby-fabric"
+      net.uebliche.dockbridge.server_port: "25565"
     command:
       - bash
       - -lc
       - |
         set -euo pipefail
-        tmp=/workspace/gradlew-docker-$$$$
+        tmp=$$(mktemp /workspace/gradlew-docker-XXXXXX)
         trap 'rm -f "$$tmp"' EXIT
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
@@ -126,38 +205,56 @@ services:
         rm -f /workspace/loader-fabric/run/config/hub.yaml
         mkdir -p /workspace/loader-fabric/run
         echo "eula=true" > /workspace/loader-fabric/run/eula.txt
-        rm -rf /workspace/common/build /workspace/loader-fabric/build
-        rm -rf /gradle-cache/fabric/caches/fabric-loom
-        "$$tmp" --gradle-user-home /gradle-cache/fabric --project-cache-dir /gradle-cache/fabric-project :loader-fabric:runServer --no-daemon
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /workspace/common/build /workspace/loader-fabric/build
+          rm -rf /gradle-cache/fabric/caches/fabric-loom
+        fi
+        "$$tmp" --gradle-user-home /gradle-cache/fabric --project-cache-dir /gradle-cache/fabric-project :loader-fabric:runServer --no-daemon $${FABRIC_GRADLE_ARGS:-}
     networks:
       - hub
 
   neoforge:
     image: eclipse-temurin:21-jdk
     working_dir: /workspace
+    profiles:
+      - neoforge
     volumes:
       - ./:/workspace
+      - gradle-cache:/gradle-cache
     environment:
       GRADLE_USER_HOME: /gradle-cache/neoforge
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/neoforge-project
       mcVersion: 1.21.10
       INCLUDE_NEOFORGE: "true"
+      JAVA_TOOL_OPTIONS: ${NEOFORGE_JAVA_TOOL_OPTIONS:--Xms512M -Xmx2G -XX:+UseG1GC}
+      GRADLE_OPTS: ${NEOFORGE_GRADLE_OPTS:--Dorg.gradle.jvmargs=-Xmx1G -Dorg.gradle.workers.max=1}
+      NEOFORGE_CLEAR_NEOFORM: ${NEOFORGE_CLEAR_NEOFORM:-0}
+      NEOFORM_VERBOSE: ${NEOFORM_VERBOSE:-false}
+      NEOFORM_RUNTIME_VERSION: ${NEOFORM_RUNTIME_VERSION:-2.0.18}
+      NEOFORM_DECOMPILE_XMX: ${NEOFORM_DECOMPILE_XMX:-3G}
+      NEOFORM_VINEFLOWER_VERSION: ${NEOFORM_VINEFLOWER_VERSION:-org.vineflower:vineflower:1.11.2}
+    labels:
+      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.server_name: "lobby-neoforge"
+      net.uebliche.dockbridge.server_port: "25565"
     command:
       - bash
       - -lc
       - |
         set -euo pipefail
-        tmp=/workspace/gradlew-docker-$$$$
+        tmp=$$(mktemp /workspace/gradlew-docker-XXXXXX)
         trap 'rm -f "$$tmp"' EXIT
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
-        rm -rf /gradle-cache/neoforge
-        mkdir -p /gradle-cache/neoforge
+        mkdir -p /gradle-cache/neoforge /gradle-cache/neoforge-project
+        if [ "$$NEOFORGE_CLEAR_NEOFORM" = "1" ]; then
+          rm -rf /gradle-cache/neoforge/caches/neoformruntime
+        fi
         # reset plugin configs to defaults each run
         rm -f /workspace/loader-neoforge/run/config/hub.yaml
-        rm -rf /workspace/common/build /workspace/loader-neoforge/build /workspace/loader-neoforge/run/mods
-        rm -rf /gradle-cache/neoforge/caches/fabric-loom
-        rm -rf /gradle-cache/neoforge/caches/neoformruntime
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /workspace/common/build /workspace/loader-neoforge/build /workspace/loader-neoforge/run/mods
+        fi
         "$$tmp" --gradle-user-home /gradle-cache/neoforge --project-cache-dir /gradle-cache/neoforge-project :loader-neoforge:runServer --no-daemon
     networks:
       - hub
@@ -167,28 +264,124 @@ services:
     working_dir: /workspace
     volumes:
       - ./:/workspace
+      - gradle-cache:/gradle-cache
     environment:
       GRADLE_USER_HOME: /gradle-cache/minestom
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/minestom-project
       VELOCITY_SECRET: "secret"
+      ORG_GRADLE_JAVA_INSTALLATIONS_PATHS: /opt/java/openjdk
+    labels:
+      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.server_name: "lobby-minestom"
+      net.uebliche.dockbridge.server_port: "25565"
     command:
       - bash
       - -lc
       - |
         set -euo pipefail
-        apt-get update -y >/dev/null && apt-get install -y --no-install-recommends openjdk-21-jdk-headless >/dev/null
-        export JAVA_HOME_21=/usr/lib/jvm/java-21-openjdk-amd64
-        export PATH="/usr/lib/jvm/java-21-openjdk-amd64/bin:$$PATH"
-        tmp=/workspace/gradlew-docker-$$$$
+        mkdir -p /usr/lib/jvm
+        if ! ls /usr/lib/jvm/java-21-openjdk-* >/dev/null 2>&1; then
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends openjdk-21-jdk-headless
+          rm -rf /var/lib/apt/lists/*
+        fi
+        export JAVA_HOME_25=/opt/java/openjdk
+        export JAVA_HOME_21=$$(ls -d /usr/lib/jvm/java-21-openjdk-* | head -n1)
+        ln -sfn "$$JAVA_HOME_25" /usr/lib/jvm/java-25-openjdk-arm64
+        ln -sfn "$$JAVA_HOME_25" /usr/lib/jvm/java-25-openjdk-amd64
+        ln -sfn "$$JAVA_HOME_21" /usr/lib/jvm/java-21-openjdk-arm64
+        ln -sfn "$$JAVA_HOME_21" /usr/lib/jvm/java-21-openjdk-amd64
+        export JAVA_HOME="$$JAVA_HOME_25"
+        export PATH="$$JAVA_HOME_25/bin:$$PATH"
+        export JAVA_TOOL_OPTIONS="--enable-native-access=ALL-UNNAMED ${JAVA_TOOL_OPTIONS:-}"
+        export ORG_GRADLE_JAVA_INSTALLATIONS_PATHS="$$JAVA_HOME_25:$$JAVA_HOME_21"
+        tmp=$$(mktemp /workspace/gradlew-docker-XXXXXX)
         trap 'rm -f "$$tmp"' EXIT
         tr -d '\r' < gradlew > "$$tmp"
         chmod +x "$$tmp"
-        rm -rf /gradle-cache/minestom
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /gradle-cache/minestom
+        fi
         mkdir -p /gradle-cache/minestom
         # reset plugin configs to defaults each run
         rm -f /workspace/loader-minestom/run/config/hub.yaml
-        rm -rf /workspace/common/build /workspace/loader-minestom/build /workspace/loader-minestom/run
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /workspace/common/build /workspace/loader-minestom/build /workspace/loader-minestom/run
+        fi
         "$$tmp" --gradle-user-home /gradle-cache/minestom --project-cache-dir /gradle-cache/minestom-project :loader-minestom:run --no-daemon
+    networks:
+      - hub
+
+  minigames-lobby:
+    image: eclipse-temurin:25-jdk
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - gradle-cache:/gradle-cache
+    environment:
+      GRADLE_USER_HOME: /gradle-cache/minigames-lobby
+      GRADLE_PROJECT_CACHE_DIR: /gradle-cache/minigames-lobby-project
+      VELOCITY_SECRET: "secret"
+      HUB_MINESTOM_RUN_DIR: run-minigames-lobby
+      ORG_GRADLE_JAVA_INSTALLATIONS_PATHS: /opt/java/openjdk
+    labels:
+      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.server_name: "lobby-minigames"
+      net.uebliche.dockbridge.server_port: "25565"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        mkdir -p /usr/lib/jvm
+        if ! ls /usr/lib/jvm/java-21-openjdk-* >/dev/null 2>&1; then
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends openjdk-21-jdk-headless
+          rm -rf /var/lib/apt/lists/*
+        fi
+        export JAVA_HOME_25=/opt/java/openjdk
+        export JAVA_HOME_21=$$(ls -d /usr/lib/jvm/java-21-openjdk-* | head -n1)
+        ln -sfn "$$JAVA_HOME_25" /usr/lib/jvm/java-25-openjdk-arm64
+        ln -sfn "$$JAVA_HOME_25" /usr/lib/jvm/java-25-openjdk-amd64
+        ln -sfn "$$JAVA_HOME_21" /usr/lib/jvm/java-21-openjdk-arm64
+        ln -sfn "$$JAVA_HOME_21" /usr/lib/jvm/java-21-openjdk-amd64
+        export JAVA_HOME="$$JAVA_HOME_25"
+        export PATH="$$JAVA_HOME_25/bin:$$PATH"
+        export JAVA_TOOL_OPTIONS="--enable-native-access=ALL-UNNAMED ${JAVA_TOOL_OPTIONS:-}"
+        export ORG_GRADLE_JAVA_INSTALLATIONS_PATHS="$$JAVA_HOME_25:$$JAVA_HOME_21"
+        tmp=$$(mktemp /workspace/gradlew-docker-XXXXXX)
+        trap 'rm -f "$$tmp"' EXIT
+        tr -d '\r' < gradlew > "$$tmp"
+        chmod +x "$$tmp"
+        if [ "$${HUB_CLEAN:-0}" = "1" ]; then
+          rm -rf /gradle-cache/minigames-lobby
+        fi
+        mkdir -p /gradle-cache/minigames-lobby /gradle-cache/minigames-lobby-project
+        "$$tmp" --gradle-user-home /gradle-cache/minigames-lobby --project-cache-dir /gradle-cache/minigames-lobby-project :loader-minestom:run --no-daemon
+    networks:
+      - hub
+
+  docs:
+    image: node:20-bookworm
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - docs-node-modules:/workspace/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        if [ ! -d node_modules ] || [ ! -f node_modules/.bin/vitepress ]; then
+          npm install --no-audit --no-fund
+        fi
+        npm run docs:dev -- --host 0.0.0.0
+    ports:
+      - "5175:5175"
     networks:
       - hub
 
@@ -197,3 +390,7 @@ networks:
     driver: bridge
   gateway:
     external: true
+
+volumes:
+  docs-node-modules:
+  gradle-cache:

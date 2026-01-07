@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.uebliche.hub.Hub;
 import net.uebliche.hub.config.Lobby;
+import net.uebliche.hub.utils.MessageUtils.DebugCategory;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -17,17 +18,17 @@ public class PlayerUtils extends Utils<PlayerUtils> {
 
     public boolean permissionCheck(Player player, Lobby lobby) {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
-        messageUtils.sendDebugMessage(player, "🔎 Checking if user can join " + lobby.name);
+        messageUtils.sendDebugMessage(DebugCategory.PERMISSIONS, player, "🔎 Checking if user can join " + lobby.name);
         boolean allowed = lobby.permission.isBlank() || player.hasPermission(lobby.permission);
         DataCollector dataCollector = Utils.util(DataCollector.class);
         if (dataCollector != null) {
             dataCollector.recordPermission(player, lobby.permission, allowed);
         }
         if (allowed) {
-            messageUtils.sendDebugMessage(player, "<green>✔ User has Permission to join " + lobby.name + ".");
+            messageUtils.sendDebugMessage(DebugCategory.PERMISSIONS, player, "<green>✔ User has Permission to join " + lobby.name + ".");
             return true;
         } else {
-            messageUtils.sendDebugMessage(player, "<red>❌ User has no Permission to join " + lobby.name + ".");
+            messageUtils.sendDebugMessage(DebugCategory.PERMISSIONS, player, "<red>❌ User has no Permission to join " + lobby.name + ".");
             return false;
         }
     }
@@ -35,33 +36,51 @@ public class PlayerUtils extends Utils<PlayerUtils> {
     public CompletableFuture<Boolean> connect(Player player, RegisteredServer server, Lobby lobby) {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
         ConfigUtils configUtils = Utils.util(ConfigUtils.class);
-        messageUtils.sendDebugMessage(player, "✈ Sending player to " + server.getServerInfo().getName() + " as member of " + lobby.name);
+        messageUtils.sendDebugMessage(DebugCategory.TRANSFER, player, "✈ Sending player to " + server.getServerInfo().getName() + " as member of " + lobby.name);
         if(player.getCurrentServer().isPresent()){
-            messageUtils.sendDebugMessage(player, "🔎 Checking if user is already connected to " + server.getServerInfo().getName());
+            messageUtils.sendDebugMessage(DebugCategory.TRANSFER, player, "🔎 Checking if user is already connected to " + server.getServerInfo().getName());
             if (player.getCurrentServer().get().getServerInfo().getName().equals(server.getServerInfo().getName())) {
-                messageUtils.sendDebugMessage(player, "<red>❌ User is already connected to " + server.getServerInfo().getName() + ".");
-                messageUtils.sendMessage(player, lobby.messages().alreadyConnectedMessage == null ? configUtils.config().messages.alreadyConnectedMessage : lobby.messages().alreadyConnectedMessage, server, lobby);
+                messageUtils.sendDebugMessage(DebugCategory.TRANSFER, player, "<red>❌ User is already connected to " + server.getServerInfo().getName() + ".");
+                String fallback = lobby.messages().alreadyConnectedMessage == null
+                        ? configUtils.config().messages.alreadyConnectedMessage
+                        : lobby.messages().alreadyConnectedMessage;
+                messageUtils.sendMessage(player, messageUtils.i18n("proxy.message.already-connected", player, fallback, server, lobby));
                 return CompletableFuture.completedFuture(false);
             }
         } else {
-            messageUtils.sendDebugMessage(player, "<red>❌ User is not connected to any server.");
+            messageUtils.sendDebugMessage(DebugCategory.TRANSFER, player, "<red>❌ User is not connected to any server.");
         }
         return player.createConnectionRequest(server).connect().thenApply(connection -> {
             if (connection.getStatus() == ConnectionRequestBuilder.Status.SUCCESS) {
-                messageUtils.sendMessage(player, lobby.messages().successMessage == null ? configUtils.config().messages.successMessage : lobby.messages().successMessage, server, lobby);
+                String fallback = lobby.messages().successMessage == null
+                        ? configUtils.config().messages.successMessage
+                        : lobby.messages().successMessage;
+                messageUtils.sendMessage(player, messageUtils.i18n("proxy.message.success", player, fallback, server, lobby));
                 return true;
             }
             if (connection.getStatus() == ConnectionRequestBuilder.Status.ALREADY_CONNECTED) {
-                messageUtils.sendMessage(player, lobby.messages().alreadyConnectedMessage == null ? configUtils.config().messages.alreadyConnectedMessage : lobby.messages().alreadyConnectedMessage, server, lobby);
+                String fallback = lobby.messages().alreadyConnectedMessage == null
+                        ? configUtils.config().messages.alreadyConnectedMessage
+                        : lobby.messages().alreadyConnectedMessage;
+                messageUtils.sendMessage(player, messageUtils.i18n("proxy.message.already-connected", player, fallback, server, lobby));
             }
             if (connection.getStatus() == ConnectionRequestBuilder.Status.CONNECTION_IN_PROGRESS) {
-                messageUtils.sendMessage(player, lobby.messages().connectionInProgressMessage == null ? configUtils.config().messages.connectionInProgressMessage : lobby.messages().connectionInProgressMessage, server, lobby);
+                String fallback = lobby.messages().connectionInProgressMessage == null
+                        ? configUtils.config().messages.connectionInProgressMessage
+                        : lobby.messages().connectionInProgressMessage;
+                messageUtils.sendMessage(player, messageUtils.i18n("proxy.message.in-progress", player, fallback, server, lobby));
             }
             if (connection.getStatus() == ConnectionRequestBuilder.Status.SERVER_DISCONNECTED) {
-                messageUtils.sendMessage(player, lobby.messages().serverDisconnectedMessage == null ? configUtils.config().messages.serverDisconnectedMessage : lobby.messages().serverDisconnectedMessage, server, lobby);
+                String fallback = lobby.messages().serverDisconnectedMessage == null
+                        ? configUtils.config().messages.serverDisconnectedMessage
+                        : lobby.messages().serverDisconnectedMessage;
+                messageUtils.sendMessage(player, messageUtils.i18n("proxy.message.server-disconnected", player, fallback, server, lobby));
             }
             if (connection.getStatus() == ConnectionRequestBuilder.Status.CONNECTION_CANCELLED) {
-                messageUtils.sendMessage(player, lobby.messages().connectionCancelledMessage == null ? configUtils.config().messages.connectionCancelledMessage : lobby.messages().connectionCancelledMessage, server, lobby);
+                String fallback = lobby.messages().connectionCancelledMessage == null
+                        ? configUtils.config().messages.connectionCancelledMessage
+                        : lobby.messages().connectionCancelledMessage;
+                messageUtils.sendMessage(player, messageUtils.i18n("proxy.message.cancelled", player, fallback, server, lobby));
             }
             return false;
         });

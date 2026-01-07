@@ -7,6 +7,7 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import net.uebliche.hub.Hub;
 import net.uebliche.hub.config.Lobby;
 import net.uebliche.hub.data.PingResult;
+import net.uebliche.hub.utils.MessageUtils.DebugCategory;
 
 import java.time.Duration;
 import java.util.Comparator;
@@ -43,6 +44,40 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         return findBest(player, Set.of());
     }
 
+    public Optional<RegisteredServer> findForcedHostServer(Player player, String host) {
+        var configUtils = Utils.util(ConfigUtils.class);
+        var messageUtils = Utils.util(MessageUtils.class);
+        var playerUtils = Utils.util(PlayerUtils.class);
+        if (configUtils == null || messageUtils == null || playerUtils == null) {
+            return Optional.empty();
+        }
+        if (host == null || host.isBlank()) {
+            return Optional.empty();
+        }
+
+        String normalizedHost = normalizeHost(host);
+        if (normalizedHost.isBlank()) {
+            return Optional.empty();
+        }
+
+        var config = configUtils.config();
+        if (config == null) {
+            return Optional.empty();
+        }
+
+        var direct = resolveDirectForcedHost(player, normalizedHost, config, messageUtils);
+        if (direct.isPresent()) {
+            return direct;
+        }
+
+        var lobbyTarget = resolveLobbyForcedHost(player, normalizedHost, config, messageUtils, playerUtils);
+        if (lobbyTarget.isPresent()) {
+            return lobbyTarget;
+        }
+
+        return resolveGroupForcedHost(player, normalizedHost, config, messageUtils, playerUtils);
+    }
+
     public Optional<PingResult> findBest(Player player, Set<String> excludedServerNames) {
         var configUtils = Utils.util(ConfigUtils.class);
         var messageUtils = Utils.util(MessageUtils.class);
@@ -55,7 +90,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
             return Optional.empty();
         }
 
-        messageUtils.sendDebugMessage(player, "🔍 Searching for Best Lobby Server...");
+        messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "🔍 Searching for Best Lobby Server...");
 
         var accessibleLobbies = configUtils.config().lobbies.stream()
                 .sorted(Comparator.comparingInt(Lobby::priority).reversed())
@@ -63,7 +98,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
                 .toList();
 
         if (accessibleLobbies.isEmpty()) {
-            messageUtils.sendDebugMessage(player, "<yellow>⚠️ No eligible lobbies available for this player.");
+            messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<yellow>⚠️ No eligible lobbies available for this player.");
             return Optional.empty();
         }
 
@@ -86,11 +121,11 @@ public class LobbyUtils extends Utils<LobbyUtils> {
 
             if (matching.isEmpty() && !attemptedRefresh.get()) {
                 attemptedRefresh.set(true);
-                messageUtils.sendDebugMessage(player, "<yellow>⚠️ Cache empty for lobby " + lobby.name + "; refreshing now...");
+                messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<yellow>⚠️ Cache empty for lobby " + lobby.name + "; refreshing now...");
                 try {
                     refreshNow().join();
                 } catch (Exception exception) {
-                    messageUtils.sendDebugMessage(player, "<red>❌ Failed to refresh lobby cache: " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + ".");
+                    messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<red>❌ Failed to refresh lobby cache: " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + ".");
                 }
                 matching = cachedServers.values().stream()
                         .filter(status -> lobby.filter.matcher(status.server().getServerInfo().getName()).matches())
@@ -100,7 +135,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
 
             if (matching.isEmpty()) {
                 if (noServerAnnouncements.add(lobby.name)) {
-                    messageUtils.sendDebugMessage(player, "<yellow>⚠️ No cached servers available for " + lobby.name + ".");
+                    messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<yellow>⚠️ No cached servers available for " + lobby.name + ".");
                 }
                 continue;
             }
@@ -117,7 +152,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         }
 
         if (best == null) {
-            messageUtils.sendDebugMessage(player, "<red>❌ No cached lobby data available.");
+            messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<red>❌ No cached lobby data available.");
             return Optional.empty();
         }
 
@@ -127,7 +162,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         var max = best.players().getMax();
         var latency = best.latency();
 
-        messageUtils.sendDebugMessage(player,
+        messageUtils.sendDebugMessage(DebugCategory.FINDER, player,
                 "<yellow>🧭 Selected <gold>" + serverName + "</gold> "
                         + "<gray>(" + online + "<dark_gray>/" + max + " players, "
                         + "latency " + latency + "ms, cached " + age + "ms ago)</gray>");
@@ -164,11 +199,11 @@ public class LobbyUtils extends Utils<LobbyUtils> {
 
         if (candidates.isEmpty() && !attemptedRefresh.get()) {
             attemptedRefresh.set(true);
-            messageUtils.sendDebugMessage(player, "<yellow>⚠️ Cache empty for lobby " + lobby.name + "; refreshing now...</yellow>");
+            messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<yellow>⚠️ Cache empty for lobby " + lobby.name + "; refreshing now...</yellow>");
             try {
                 refreshNow().join();
             } catch (Exception exception) {
-                messageUtils.sendDebugMessage(player, "<red>❌ Failed to refresh lobby cache: " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + ".");
+                messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<red>❌ Failed to refresh lobby cache: " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + ".");
             }
             candidates = getCachedResults(player, lobby).stream()
                     .filter(result -> !excludedNormalized.contains(result.result().server().getServerInfo().getName().toLowerCase(Locale.ROOT)))
@@ -176,7 +211,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         }
 
         if (candidates.isEmpty()) {
-            messageUtils.sendDebugMessage(player, "<yellow>⚠️ No cached servers available for " + lobby.name + ".");
+            messageUtils.sendDebugMessage(DebugCategory.FINDER, player, "<yellow>⚠️ No cached servers available for " + lobby.name + ".");
             return Optional.empty();
         }
 
@@ -185,7 +220,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         var online = best.result().players().getOnline();
         var max = best.result().players().getMax();
         var latency = best.result().latency();
-        messageUtils.sendDebugMessage(player,
+        messageUtils.sendDebugMessage(DebugCategory.FINDER, player,
                 "<yellow>🧭 Selected <gold>" + serverName + "</gold> "
                         + "<gray>(" + online + "<dark_gray>/" + max + " players, "
                         + "latency " + latency + "ms, cached " + best.ageMillis() + "ms ago)</gray>");
@@ -216,7 +251,7 @@ public class LobbyUtils extends Utils<LobbyUtils> {
                 .findFirst();
 
         if (lobbyOpt.isEmpty()) {
-            messageUtils.sendDebugMessage(player, "<yellow>⚠️ Last lobby " + remembered.get().lobbyName() + " is not available for this player.");
+            messageUtils.sendDebugMessage(DebugCategory.LAST_LOBBY, player, "<yellow>⚠️ Last lobby " + remembered.get().lobbyName() + " is not available for this player.");
             return Optional.empty();
         }
 
@@ -225,17 +260,17 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         var cached = getCachedResults(player, lobby);
         var preferredServerKey = preferredServerName.toLowerCase(Locale.ROOT);
         if (excludedServers.contains(preferredServerKey)) {
-            messageUtils.sendDebugMessage(player, "<yellow>⚠️ Remembered lobby server " + preferredServerName + " is excluded; falling back to normal selection.");
+            messageUtils.sendDebugMessage(DebugCategory.LAST_LOBBY, player, "<yellow>⚠️ Remembered lobby server " + preferredServerName + " is excluded; falling back to normal selection.");
             return Optional.empty();
         }
 
         if (cached.isEmpty() && !attemptedRefresh.get()) {
             attemptedRefresh.set(true);
-            messageUtils.sendDebugMessage(player, "<yellow>⚠️ Cache empty for remembered lobby; refreshing now...</yellow>");
+            messageUtils.sendDebugMessage(DebugCategory.LAST_LOBBY, player, "<yellow>⚠️ Cache empty for remembered lobby; refreshing now...</yellow>");
             try {
                 refreshNow().join();
             } catch (Exception exception) {
-                messageUtils.sendDebugMessage(player, "<red>❌ Failed to refresh lobby cache: " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + ".");
+                messageUtils.sendDebugMessage(DebugCategory.LAST_LOBBY, player, "<red>❌ Failed to refresh lobby cache: " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + ".");
             }
             cached = getCachedResults(player, lobby);
         }
@@ -246,17 +281,234 @@ public class LobbyUtils extends Utils<LobbyUtils> {
                 .findFirst();
 
         if (preferred.isPresent()) {
-            messageUtils.sendDebugMessage(player, "<green>⏪ Preferring last lobby server " + preferredServerName + ".</green>");
+            messageUtils.sendDebugMessage(DebugCategory.LAST_LOBBY, player, "<green>⏪ Preferring last lobby server " + preferredServerName + ".</green>");
             return Optional.of(preferred.get().result());
         }
 
-        messageUtils.sendDebugMessage(player, "<yellow>⚠️ Last lobby server " + preferredServerName + " is unavailable; falling back to normal selection.");
+        messageUtils.sendDebugMessage(DebugCategory.LAST_LOBBY, player, "<yellow>⚠️ Last lobby server " + preferredServerName + " is unavailable; falling back to normal selection.");
         return Optional.empty();
     }
 
     private double score(CachedPing cached) {
         double usage = cached.usage();
         return Math.abs((usage + 0.2) - 0.5);
+    }
+
+    private String normalizeHost(String raw) {
+        String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        if (value.endsWith(".")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        int portIndex = value.indexOf(':');
+        if (portIndex > -1) {
+            value = value.substring(0, portIndex);
+        }
+        return value;
+    }
+
+    private boolean hostMatches(String host, String entry) {
+        String candidate = normalizeHost(entry);
+        if (candidate.isBlank()) {
+            return false;
+        }
+        if (candidate.startsWith("*.")) {
+            String suffix = candidate.substring(2);
+            return host.equalsIgnoreCase(suffix) || host.endsWith("." + suffix);
+        }
+        return host.equalsIgnoreCase(candidate);
+    }
+
+    private Optional<RegisteredServer> resolveDirectForcedHost(Player player, String host, net.uebliche.hub.config.Config config,
+                                                               MessageUtils messageUtils) {
+        var entries = config.forcedHosts != null ? config.forcedHosts : List.<net.uebliche.hub.config.Config.ForcedHost>of();
+        for (var entry : entries) {
+            if (entry == null || entry.host == null || entry.host.isBlank()) {
+                continue;
+            }
+            if (!hostMatches(host, entry.host)) {
+                continue;
+            }
+            String targetName = entry.server == null ? "" : entry.server.trim();
+            if (targetName.isBlank()) {
+                messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                        "<yellow>⚠️ Forced host " + host + " matched but no server is configured.</yellow>");
+                continue;
+            }
+            var serverOpt = hub.server().getServer(targetName);
+            if (serverOpt.isEmpty()) {
+                messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                        "<red>❌ Forced host " + host + " targets missing server " + targetName + ".</red>");
+                continue;
+            }
+            messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                    "<green>🔗 Forced host " + host + " -> server " + targetName + ".</green>");
+            return serverOpt;
+        }
+        return Optional.empty();
+    }
+
+    private Optional<RegisteredServer> resolveLobbyForcedHost(Player player, String host, net.uebliche.hub.config.Config config,
+                                                              MessageUtils messageUtils, PlayerUtils playerUtils) {
+        var lobbies = config.lobbies != null ? config.lobbies : List.<Lobby>of();
+        var candidates = lobbies.stream()
+                .filter(lobby -> lobby.forcedHosts != null && !lobby.forcedHosts.isEmpty())
+                .filter(lobby -> lobby.forcedHosts.stream().anyMatch(entry -> hostMatches(host, entry)))
+                .sorted(Comparator.comparingInt(Lobby::priority).reversed())
+                .toList();
+
+        for (Lobby lobby : candidates) {
+            if (!playerUtils.permissionCheck(player, lobby)) {
+                messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                        "<yellow>⚠️ Forced host " + host + " matches " + lobby.name + " but permission is missing.</yellow>");
+                continue;
+            }
+            var result = findBestForLobby(player, lobby);
+            if (result.isPresent()) {
+                messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                        "<green>🔗 Forced host " + host + " -> lobby " + lobby.name + ".</green>");
+                return Optional.of(result.get().server());
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<RegisteredServer> resolveGroupForcedHost(Player player, String host, net.uebliche.hub.config.Config config,
+                                                              MessageUtils messageUtils, PlayerUtils playerUtils) {
+        if (config.lobbyGroups == null || config.lobbyGroups.isEmpty()) {
+            return Optional.empty();
+        }
+        var lobbyByName = indexLobbies(config.lobbies);
+        var groupByName = indexGroups(config.lobbyGroups);
+        var childrenByGroup = buildGroupChildren(groupByName);
+
+        for (var group : config.lobbyGroups) {
+            if (group == null || group.forcedHosts == null || group.forcedHosts.isEmpty()) {
+                continue;
+            }
+            if (group.forcedHosts.stream().noneMatch(entry -> hostMatches(host, entry))) {
+                continue;
+            }
+            var lobbies = collectGroupLobbies(group, lobbyByName, groupByName, childrenByGroup, messageUtils, player);
+            if (lobbies.isEmpty()) {
+                continue;
+            }
+            var ordered = lobbies.stream()
+                    .sorted(Comparator.comparingInt(Lobby::priority).reversed())
+                    .toList();
+            for (var lobby : ordered) {
+                if (!playerUtils.permissionCheck(player, lobby)) {
+                    messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                            "<yellow>⚠️ Forced host " + host + " matched group " + group.name + " but permission is missing for " + lobby.name + ".</yellow>");
+                    continue;
+                }
+                var result = findBestForLobby(player, lobby);
+                if (result.isPresent()) {
+                    messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                            "<green>🔗 Forced host " + host + " -> group " + group.name + " (" + lobby.name + ").</green>");
+                    return Optional.of(result.get().server());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Map<String, Lobby> indexLobbies(List<Lobby> lobbies) {
+        var map = new java.util.LinkedHashMap<String, Lobby>();
+        if (lobbies == null) {
+            return map;
+        }
+        for (var lobby : lobbies) {
+            String key = normalizeName(lobby == null ? "" : lobby.name);
+            if (!key.isBlank()) {
+                map.put(key, lobby);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, net.uebliche.hub.config.Config.LobbyGroup> indexGroups(
+            List<net.uebliche.hub.config.Config.LobbyGroup> groups) {
+        var map = new java.util.LinkedHashMap<String, net.uebliche.hub.config.Config.LobbyGroup>();
+        if (groups == null) {
+            return map;
+        }
+        for (var group : groups) {
+            String key = normalizeName(group == null ? "" : group.name);
+            if (!key.isBlank()) {
+                map.put(key, group);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, List<String>> buildGroupChildren(
+            Map<String, net.uebliche.hub.config.Config.LobbyGroup> groupByName) {
+        var children = new java.util.LinkedHashMap<String, List<String>>();
+        groupByName.values().forEach(group -> {
+            String nameKey = normalizeName(group.name);
+            String parentKey = normalizeName(group.parentGroup);
+            if (nameKey.isBlank() || parentKey.isBlank() || parentKey.equals(nameKey)) {
+                return;
+            }
+            if (!groupByName.containsKey(parentKey)) {
+                return;
+            }
+            children.computeIfAbsent(parentKey, ignored -> new java.util.ArrayList<>()).add(nameKey);
+        });
+        return children;
+    }
+
+    private List<Lobby> collectGroupLobbies(net.uebliche.hub.config.Config.LobbyGroup group, Map<String, Lobby> lobbyByName,
+                                            Map<String, net.uebliche.hub.config.Config.LobbyGroup> groupByName,
+                                            Map<String, List<String>> childrenByGroup,
+                                            MessageUtils messageUtils, Player player) {
+        var results = new java.util.ArrayList<Lobby>();
+        String rootKey = normalizeName(group == null ? "" : group.name);
+        if (rootKey.isBlank()) {
+            return results;
+        }
+        collectGroupLobbies(rootKey, lobbyByName, groupByName, childrenByGroup,
+                new java.util.LinkedHashSet<>(), new java.util.LinkedHashSet<>(), results, messageUtils, player);
+        return results;
+    }
+
+    private void collectGroupLobbies(String groupKey, Map<String, Lobby> lobbyByName,
+                                     Map<String, net.uebliche.hub.config.Config.LobbyGroup> groupByName,
+                                     Map<String, List<String>> childrenByGroup,
+                                     Set<String> visitedGroups, Set<String> visitedLobbies, List<Lobby> out,
+                                     MessageUtils messageUtils, Player player) {
+        if (!visitedGroups.add(groupKey)) {
+            return;
+        }
+        var group = groupByName.get(groupKey);
+        if (group == null) {
+            return;
+        }
+        var entries = group.lobbies != null ? group.lobbies : List.<String>of();
+        for (String lobbyName : entries) {
+            String lobbyKey = normalizeName(lobbyName);
+            if (lobbyKey.isBlank()) {
+                continue;
+            }
+            var lobby = lobbyByName.get(lobbyKey);
+            if (lobby == null) {
+                messageUtils.sendDebugMessage(DebugCategory.FORCED_HOSTS, player,
+                        "<yellow>⚠️ Lobby '" + lobbyName + "' from group '" + group.name + "' not found; skipping.</yellow>");
+                continue;
+            }
+            if (visitedLobbies.add(lobby.name.toLowerCase(Locale.ROOT))) {
+                out.add(lobby);
+            }
+        }
+        var children = childrenByGroup.getOrDefault(groupKey, List.of());
+        for (var childKey : children) {
+            collectGroupLobbies(childKey, lobbyByName, groupByName, childrenByGroup,
+                    visitedGroups, visitedLobbies, out, messageUtils, player);
+        }
+    }
+
+    private String normalizeName(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
     private void reschedule() {
@@ -341,25 +593,29 @@ public class LobbyUtils extends Utils<LobbyUtils> {
         long start = System.currentTimeMillis();
         var messageUtils = Utils.util(MessageUtils.class);
         if (messageUtils != null) {
-            messageUtils.broadcastDebugMessage("<gray>📡 Pinging " + server.getServerInfo().getName() + " (timeout " + timeout.toMillis() + "ms)...</gray>");
+            messageUtils.broadcastDebugMessage(DebugCategory.PINGS,
+                    "<gray>📡 Pinging " + server.getServerInfo().getName() + " (timeout " + timeout.toMillis() + "ms)...</gray>");
         }
         try {
             var ping = server.ping().orTimeout(timeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS).join();
             if (ping == null) {
                 if (messageUtils != null) {
-                    messageUtils.broadcastDebugMessage("<red>📡 Ping to " + server.getServerInfo().getName() + " returned no data.</red>");
+                    messageUtils.broadcastDebugMessage(DebugCategory.PINGS,
+                            "<red>📡 Ping to " + server.getServerInfo().getName() + " returned no data.</red>");
                 }
                 return null;
             }
             var players = ping.getPlayers().orElseGet(() -> new ServerPing.Players(0, 1, List.of()));
             long now = System.currentTimeMillis();
             if (messageUtils != null) {
-                messageUtils.broadcastDebugMessage("<green>📡 Ping success for " + server.getServerInfo().getName() + ": " + players.getOnline() + "/" + players.getMax() + " players, latency " + (now - start) + "ms.</green>");
+                messageUtils.broadcastDebugMessage(DebugCategory.PINGS,
+                        "<green>📡 Ping success for " + server.getServerInfo().getName() + ": " + players.getOnline() + "/" + players.getMax() + " players, latency " + (now - start) + "ms.</green>");
             }
             return new CachedPing(server, players, now - start, now);
         } catch (Exception exception) {
             if (messageUtils != null) {
-                messageUtils.broadcastDebugMessage("<red>📡 Ping failed for " + server.getServerInfo().getName() + ": " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + "</red>");
+                messageUtils.broadcastDebugMessage(DebugCategory.PINGS,
+                        "<red>📡 Ping failed for " + server.getServerInfo().getName() + ": " + exception.getClass().getSimpleName() + (exception.getMessage() != null ? " - " + exception.getMessage() : "") + "</red>");
             }
             return null;
         }

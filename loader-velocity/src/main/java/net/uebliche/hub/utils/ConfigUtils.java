@@ -3,6 +3,7 @@ package net.uebliche.hub.utils;
 import net.uebliche.hub.Hub;
 import net.uebliche.hub.config.Config;
 import net.kyori.adventure.audience.Audience;
+import net.uebliche.hub.utils.MessageUtils.DebugCategory;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.loader.HeaderMode;
@@ -19,6 +20,7 @@ public class ConfigUtils extends Utils<ConfigUtils> {
 
     private static final String DEBUG_ENV_VARIABLE = "HUB_DEBUG";
 
+    private final Path dataDirectory;
     private Config config;
     private YamlConfigurationLoader configLoader;
     private CommentedConfigurationNode node;
@@ -26,6 +28,7 @@ public class ConfigUtils extends Utils<ConfigUtils> {
 
     public ConfigUtils(Hub hub, Path dataDirectory) {
         super(hub);
+        this.dataDirectory = dataDirectory;
         configLoader = YamlConfigurationLoader.builder()
                 .path(dataDirectory.resolve("config.yml"))
                 .defaultOptions(opts -> opts.shouldCopyDefaults(true).header("Thanks <3").implicitInitialization(true))
@@ -40,6 +43,7 @@ public class ConfigUtils extends Utils<ConfigUtils> {
         config = node.get(Config.class);
         applyEnvironmentOverrides();
         processConfig();
+        Utils.util(MessageUtils.class).reloadI18n(config, dataDirectory);
         node.set(Config.class, config);
         configLoader.save(node);
         onReload.forEach(Runnable::run);
@@ -52,11 +56,11 @@ public class ConfigUtils extends Utils<ConfigUtils> {
             configLoader.save(node);
             reload();
         } catch (SerializationException e) {
-            messageUtils.sendDebugMessage(audience, "<red>❌ Failed to Serialized Config!");
-            messageUtils.sendDebugMessage(audience, e.getMessage());
+            messageUtils.sendDebugMessage(DebugCategory.CONFIG, audience, "<red>❌ Failed to Serialized Config!");
+            messageUtils.sendDebugMessage(DebugCategory.CONFIG, audience, e.getMessage());
         } catch (ConfigurateException e) {
-            messageUtils.sendDebugMessage(audience, "<red>❌ Failed to Save Config!");
-            messageUtils.sendDebugMessage(audience, e.getMessage());
+            messageUtils.sendDebugMessage(DebugCategory.CONFIG, audience, "<red>❌ Failed to Save Config!");
+            messageUtils.sendDebugMessage(DebugCategory.CONFIG, audience, e.getMessage());
         }
     }
 

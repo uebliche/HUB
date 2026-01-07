@@ -17,6 +17,7 @@ public class Lobby {
     public int priority;
     public String parent = "";
     public List<String> parentGroups = new ArrayList<>();
+    public List<String> forcedHosts = new ArrayList<>();
     public Map<String, Command> commands;
     public boolean autojoin;
     public Messages overwriteMessages = new Messages();
@@ -111,6 +112,15 @@ public class Lobby {
 
     public Lobby setParents(List<String> parents) {
         this.parentGroups = parents;
+        return this;
+    }
+
+    public List<String> forcedHosts() {
+        return forcedHosts;
+    }
+
+    public Lobby setForcedHosts(List<String> forcedHosts) {
+        this.forcedHosts = forcedHosts;
         return this;
     }
 }

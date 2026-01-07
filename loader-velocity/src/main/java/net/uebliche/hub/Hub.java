@@ -21,10 +21,14 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.uebliche.hub.config.Config;
+import net.uebliche.hub.metrics.Metrics;
 import net.uebliche.hub.utils.*;
+import net.uebliche.hub.utils.MessageUtils.DebugCategory;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.ConfigurateException;
 
+import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.Set;
 
@@ -36,6 +40,7 @@ public class Hub {
     public static final String PLUGIN_NAME = "HUB";
     public static final String VERSION = Props.VERSION;
     public static final String AUTHOR = "uebliche";
+    private static final int BSTATS_SERVICE_ID = 28517;
 
     private static final MinecraftChannelIdentifier HUB_CHANNEL = MinecraftChannelIdentifier.create("uebliche", "hub");
 
@@ -44,22 +49,28 @@ public class Hub {
 
     private final ProxyServer server;
     private final Path dataDirectory;
+    private final Metrics.Factory metricsFactory;
+    private Metrics metrics;
 
     @Inject
-    public Hub(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
+    public Hub(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory, Metrics.Factory metricsFactory) {
         this.logger = logger;
         this.server = server;
         this.dataDirectory = dataDirectory;
+        this.metricsFactory = metricsFactory;
     }
 
+    @SuppressWarnings("resource")
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
+        // Utils instances self-register and are closed via Utils.shutdownAll() on shutdown.
         new ConfigUtils(this, dataDirectory);
         new PlayerUtils(this);
         new MessageUtils(this);
         new LobbyUtils(this);
         new LastLobbyTracker(this);
         new DataCollector(this, dataDirectory);
+        metrics = metricsFactory.make(this, BSTATS_SERVICE_ID);
         server.getChannelRegistrar().register(HUB_CHANNEL);
         try {
             Utils.util(ConfigUtils.class).reload();
@@ -68,6 +79,7 @@ public class Hub {
                 new UpdateChecker(this);
             }
             scheduleUpdateChecker();
+            registerMetricsCharts();
         } catch (ConfigurateException e) {
             logger.error("Failed to load config!", e);
         }
@@ -77,7 +89,46 @@ public class Hub {
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
         Utils.shutdownAll();
+        if (metrics != null) {
+            metrics.shutdown();
+        }
         logger.info("Goodbye!");
+    }
+
+    private void registerMetricsCharts() {
+        if (metrics == null) {
+            return;
+        }
+        metrics.addCustomChart(new Metrics.SingleLineChart("lobbies_count", () -> {
+            Config config = currentConfig();
+            return config != null && config.lobbies != null ? config.lobbies.size() : 0;
+        }));
+        metrics.addCustomChart(new Metrics.SingleLineChart("lobby_groups_count", () -> {
+            Config config = currentConfig();
+            return config != null && config.lobbyGroups != null ? config.lobbyGroups.size() : 0;
+        }));
+        metrics.addCustomChart(new Metrics.SingleLineChart("forced_hosts_count", () -> {
+            Config config = currentConfig();
+            return config != null && config.forcedHosts != null ? config.forcedHosts.size() : 0;
+        }));
+        metrics.addCustomChart(new Metrics.SingleLineChart("commands_count", () -> {
+            Config config = currentConfig();
+            if (config == null || config.lobbies == null) {
+                return 0;
+            }
+            int total = 0;
+            for (var lobby : config.lobbies) {
+                if (lobby != null && lobby.commands != null) {
+                    total += lobby.commands.size();
+                }
+            }
+            return total;
+        }));
+    }
+
+    private Config currentConfig() {
+        var configUtils = Utils.util(ConfigUtils.class);
+        return configUtils != null ? configUtils.config() : null;
     }
 
     @Subscribe
@@ -151,7 +202,7 @@ public class Hub {
         wrapped.write(inner);
         connection.sendPluginMessage(HUB_CHANNEL, wrapped.toByteArray());
         // Debug messages remain English to keep logs consistent across locales
-        messageUtils.sendDebugMessage(player, messageUtils.i18n("compass.debug-list", player,
+        messageUtils.sendDebugMessage(DebugCategory.COMPASS, player, messageUtils.i18n("compass.debug-list", player,
                 Placeholder.parsed("count", String.valueOf(entries.size()))));
     }
 
@@ -173,7 +224,7 @@ public class Hub {
                 .filter(l -> l.name.equalsIgnoreCase(lobbyName))
                 .findFirst();
         if (lobbyOpt.isEmpty()) {
-            messageUtils.sendDebugMessage(player, messageUtils.i18n("compass.error-not-found", player,
+            messageUtils.sendDebugMessage(DebugCategory.COMPASS, player, messageUtils.i18n("compass.error-not-found", player,
                     Placeholder.parsed("lobby", lobbyName)));
             return;
         }
@@ -188,7 +239,7 @@ public class Hub {
             return;
         }
         var best = results.getFirst().result();
-        messageUtils.sendDebugMessage(player, messageUtils.i18n("compass.debug-connect", player,
+        messageUtils.sendDebugMessage(DebugCategory.COMPASS, player, messageUtils.i18n("compass.debug-connect", player,
                 Placeholder.parsed("server", best.server().getServerInfo().getName())));
         best.connect();
     }
@@ -221,30 +272,49 @@ public class Hub {
     @Subscribe
     public void onPlayerChooseInitialServer(PlayerChooseInitialServerEvent event) {
         MessageUtils messageUtils = Utils.util(MessageUtils.class);
-        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>PlayerChooseInitialServerEvent triggered (initial="
+        if (messageUtils == null) {
+            return;
+        }
+        messageUtils.sendDebugMessage(DebugCategory.EVENTS, event.getPlayer(), "<gray>PlayerChooseInitialServerEvent triggered (initial="
                 + event.getInitialServer().map(s -> s.getServerInfo().getName()).orElse("<none>") + ")</gray>");
+        ConfigUtils configUtils = Utils.util(ConfigUtils.class);
+        var lobbyUtils = Utils.util(LobbyUtils.class);
+        if (configUtils == null || lobbyUtils == null) {
+            return;
+        }
+        boolean forcedMatched = false;
+        String virtualHost = event.getPlayer().getVirtualHost()
+                .map(InetSocketAddress::getHostString)
+                .orElse("");
+        var forced = lobbyUtils.findForcedHostServer(event.getPlayer(), virtualHost);
+        if (forced.isPresent()) {
+            event.setInitialServer(forced.get());
+            forcedMatched = true;
+        }
+        if (configUtils.config().autoSelect.onJoin && !forcedMatched) {
+            var selection = lobbyUtils.findBest(event.getPlayer());
+            if (selection.isPresent()) {
+                event.setInitialServer(selection.get().server());
+            } else {
+                messageUtils.sendDebugMessage(DebugCategory.EVENTS, event.getPlayer(), "<red>❌ No lobby could be selected during login.");
+                if (event.getInitialServer().isEmpty()) {
+                    event.getPlayer().disconnect(messageUtils.i18n(
+                            "proxy.system.no-lobby-found",
+                            event.getPlayer(),
+                            configUtils.config().systemMessages.noLobbyFoundMessage,
+                            event.getPlayer()
+                    ));
+                }
+            }
+        }
         DataCollector dataCollector = Utils.util(DataCollector.class);
         if (dataCollector != null) {
             dataCollector.recordPlayer(event.getPlayer());
             event.getInitialServer().ifPresent(server ->
                     dataCollector.recordServer(server.getServerInfo().getName()));
         }
-        ConfigUtils configUtils = Utils.util(ConfigUtils.class);
-        if (configUtils.config().autoSelect.onJoin) {
-            var lobbyUtils = Utils.util(LobbyUtils.class);
-            var selection = lobbyUtils.findBest(event.getPlayer());
-            if (selection.isPresent()) {
-                event.setInitialServer(selection.get().server());
-            } else {
-                messageUtils.sendDebugMessage(event.getPlayer(), "<red>❌ No lobby could be selected during login.");
-                if (event.getInitialServer().isEmpty()) {
-                    event.getPlayer().disconnect(messageUtils
-                            .toMessage(configUtils.config().systemMessages.noLobbyFoundMessage, event.getPlayer()));
-                }
-            }
-        }
         UpdateChecker updateChecker = Utils.util(UpdateChecker.class);
-        if (configUtils.config().updateChecker.enabled && updateChecker.updateAvailable
+        if (updateChecker != null && configUtils.config().updateChecker.enabled && updateChecker.updateAvailable
                 && (configUtils.config().updateChecker.notification.isBlank()
                         || event.getPlayer().hasPermission(configUtils.config().updateChecker.notification))) {
             event.getPlayer().sendMessage(miniMessage().deserialize(configUtils.config().updateChecker.notification,
@@ -277,12 +347,14 @@ public class Hub {
                 .findFirst()
                 .ifPresent(lobby -> {
                     lastLobbyTracker.remember(player, lobby, server);
-                    messageUtils.sendDebugMessage(player, "<gray>💾 Remembered last lobby as "
+                    messageUtils.sendDebugMessage(DebugCategory.LAST_LOBBY, player, "<gray>💾 Remembered last lobby as "
                             + server.getServerInfo().getName() + " (" + lobby.name + ").</gray>");
                 });
     }
 
+    @SuppressWarnings("resource")
     private void scheduleUpdateChecker() {
+        // UpdateChecker self-registers in Utils and is closed via Utils.shutdownAll() on shutdown.
         var configUtils = Utils.util(ConfigUtils.class);
         if (configUtils == null || configUtils.config() == null || !configUtils.config().updateChecker.enabled) {
             return;
@@ -292,7 +364,8 @@ public class Hub {
         }
         server.getScheduler().buildTask(this, () -> {
             var result = net.uebliche.hub.common.update.UpdateChecker.checkModrinth(
-                    "HrTclB8n", VERSION, msg -> logger.info(msg));
+                    net.uebliche.hub.common.update.UpdateChecker.MODRINTH_PROJECT_ID,
+                    VERSION, msg -> logger.info(msg));
             Utils.util(UpdateChecker.class).update(result);
         }).delay(java.time.Duration.ZERO)
                 .repeat(java.time.Duration.ofMinutes(Math.max(5,
@@ -322,7 +395,7 @@ public class Hub {
                 }
             });
         }
-        messageUtils.sendDebugMessage(event.getPlayer(), "<gray>KickedFromServerEvent triggered from "
+        messageUtils.sendDebugMessage(DebugCategory.EVENTS, event.getPlayer(), "<gray>KickedFromServerEvent triggered from "
                 + event.getServer().getServerInfo().getName() + " (result=" + event.getResult() + ")</gray>");
 
         var player = event.getPlayer();
@@ -332,18 +405,23 @@ public class Hub {
         if (config.autoSelect.onServerKick) {
             Utils.util(LobbyUtils.class).findBest(player,
                     Set.of(event.getServer().getServerInfo().getName())).ifPresentOrElse(pingResult -> {
-                        messageUtils.sendDebugMessage(player, "🔁 Redirecting player after kick.");
+                        messageUtils.sendDebugMessage(DebugCategory.TRANSFER, player, "🔁 Redirecting player after kick.");
                         event.setResult(KickedFromServerEvent.RedirectPlayer.create(pingResult.server()));
                     }, () -> {
                         if (hasExistingRedirect) {
-                            messageUtils.sendDebugMessage(player, "<yellow>⚠️ No cached fallback lobby available; keeping existing redirect result.");
+                            messageUtils.sendDebugMessage(DebugCategory.TRANSFER, player, "<yellow>⚠️ No cached fallback lobby available; keeping existing redirect result.");
                             return;
                         }
-                        messageUtils.sendDebugMessage(player, "<red>❌ No fallback lobby available after kick.");
+                        messageUtils.sendDebugMessage(DebugCategory.TRANSFER, player, "<red>❌ No fallback lobby available after kick.");
                         if (!hasExistingRedirect) {
                             event.setResult(KickedFromServerEvent.DisconnectPlayer
-                                    .create(messageUtils.toMessage(config.messages.serverDisconnectedMessage,
-                                            event.getServer(), player)));
+                                    .create(messageUtils.i18n(
+                                            "proxy.message.server-disconnected",
+                                            player,
+                                            config.messages.serverDisconnectedMessage,
+                                            event.getServer(),
+                                            player
+                                    )));
                         }
                     });
             return;
@@ -351,10 +429,15 @@ public class Hub {
 
         // No auto-fallback configured; if this was the very first connection and no other redirect is present, disconnect.
         if (!hasCurrentServer && !hasExistingRedirect) {
-            messageUtils.sendDebugMessage(player, "<yellow>⚠️ Initial lobby connection failed, disconnecting player.");
+            messageUtils.sendDebugMessage(DebugCategory.EVENTS, player, "<yellow>⚠️ Initial lobby connection failed, disconnecting player.");
             event.setResult(KickedFromServerEvent.DisconnectPlayer
-                    .create(messageUtils.toMessage(config.messages.serverDisconnectedMessage,
-                            event.getServer(), player)));
+                    .create(messageUtils.i18n(
+                            "proxy.message.server-disconnected",
+                            player,
+                            config.messages.serverDisconnectedMessage,
+                            event.getServer(),
+                            player
+                    )));
         }
 
     }

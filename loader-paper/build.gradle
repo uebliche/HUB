@@ -32,6 +32,11 @@ tasks.jar {
 }
 
 tasks.runServer {
+    def forced = (project.findProperty("paperRunVersion") ?: System.getenv("PAPER_RUN_VERSION"))?.toString()
+    if (forced) {
+        minecraftVersion(forced)
+        return
+    }
     def targetVersion = (rootProject.hasProperty("paperGameVersions") && rootProject.paperGameVersions && !rootProject.paperGameVersions.isEmpty()) ? rootProject.paperGameVersions.last() : "latest"
     minecraftVersion(targetVersion)
 }

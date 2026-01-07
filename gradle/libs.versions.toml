@@ -1,6 +1,6 @@
 [versions]
 fabric-loom = "1.13.3"
-neoforge-moddev = "2.0.107"
+neoforge-moddev = "2.0.134"
 configurate = "4.1.2"
 
 [plugins]

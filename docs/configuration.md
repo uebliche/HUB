@@ -28,6 +28,23 @@ You can override any of the following keys per-lobby under `lobbies[].overwrite-
 - `server-disconnected-message`
 - `connection-cancelled-message`
 
+## Localization (i18n)
+
+```yaml
+i18n:
+  default-locale: en_us
+  use-client-locale: true
+  overrides:
+    en_us:
+      proxy.system.no-lobby-found: "<#ff9c59>Sorry! I was unable to find a lobby server for you."
+```
+
+- `default-locale`: Fallback locale used when the client locale is disabled or unavailable.
+- `use-client-locale`: If `true`, player messages are resolved with the client's language (when provided).
+- `overrides`: Per-locale key overrides. Keys map to the same i18n IDs used in the bundled translations.
+
+You can also add file-based bundles by placing `i18n/<locale>.yml` or `i18n/<locale>.json` next to the config file.
+
 ## Kick Message Forwarding
 
 ```yaml
@@ -78,6 +95,8 @@ A lobby entry looks like this:
   filter: (?i)^premiumlobby.*
   permission: hub.premium
   priority: 1
+  forced-hosts:
+    - play.example.com
   commands: { ... }
   autojoin: true
   overwrite-messages:
@@ -90,6 +109,7 @@ A lobby entry looks like this:
 - `autojoin`: Informational flag, exported through placeholders.
 - `parent`: Optional parent lobby or lobby-group name used when a player runs `/hub` while already inside this lobby.
 - `parent-groups`: Optional list of parent lobby-group names, checked in order after `parent`.
+- `forced-hosts`: Optional list of domains that route players directly to this lobby on join.
 - `overwrite-messages`: Partial set of message overrides. Omitted keys fall back to the global `messages` block.
 
 ## Lobby Groups
@@ -108,10 +128,23 @@ lobby-groups:
   - name: minigame
     lobbies:
       - ffa-lobby
+    forced-hosts:
+      - minigame.example.com
 ```
 
 - `name`: Group identifier used in `parent` / `parent-groups`.
 - `lobbies`: Ordered list of lobby names. Missing names are skipped (a debug warning is logged when enabled).
+- `forced-hosts`: Optional list of domains that route players into this group on join.
+
+## Forced Hosts (Direct Servers)
+
+You can also map domains directly to Velocity server names (bypassing lobby matching):
+
+```yaml
+forced-hosts:
+  - host: play.example.com
+    server: minigame-1
+```
 
 ## Last Lobby Preference
 

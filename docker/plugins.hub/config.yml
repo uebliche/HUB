@@ -3,6 +3,19 @@
 debug:
   enabled: true
   permission: hub.debug
+  categories:
+    general: true
+    commands: true
+    finder: true
+    pings: false
+    compass: true
+    permissions: true
+    transfer: true
+    events: true
+    placeholders: true
+    forced-hosts: true
+    last-lobby: true
+    config: true
 messages:
   success-message: <#69d9ff>You are now in the <i>Hub</i>.
   already-connected-message: <#ff614d>You are already on the <i>Hub</i>.
@@ -17,6 +30,10 @@ kick-message:
   enabled: true
   prefix: <red>
   suffix: ''
+i18n:
+  default-locale: en_us
+  use-client-locale: true
+  overrides: {}
 base-hub-command: hub
 aliases:
 - lobby
@@ -27,6 +44,7 @@ auto-select:
   on-server-kick: true
 last-lobby:
   enabled: true
+forced-hosts: []
 lobby-groups:
 - name: main
   lobbies:
@@ -34,10 +52,13 @@ lobby-groups:
   - teamlobby
   - premiumlobby
   parent-group: ''
+  forced-hosts: []
 - name: minigame
   lobbies:
+  - minigames-lobby
   - ffa-lobby
-  parent-group: ''
+  parent-group: main
+  forced-hosts: []
 lobbies:
 - name: teamlobby
   filter: (?i)^teamlobby.*
@@ -46,6 +67,7 @@ lobbies:
   parent: ''
   parent-groups:
   - lobby
+  forced-hosts: []
   commands:
     teamlobby:
       standalone: false
@@ -60,6 +82,7 @@ lobbies:
   parent: ''
   parent-groups:
   - lobby
+  forced-hosts: []
   commands:
     premiumlobby:
       standalone: true
@@ -68,6 +91,22 @@ lobbies:
   autojoin: true
   overwrite-messages:
     success-message: <#69d9ff>You are now in the <b>Premium Hub</b>.
+- name: minigames-lobby
+  filter: (?i)^lobby-minigames.*
+  permission: ''
+  priority: 1
+  parent: ''
+  parent-groups:
+  - main
+  forced-hosts: []
+  commands:
+    minigames:
+      standalone: false
+      subcommand: true
+      hide-on: ^(?!.*).$
+  autojoin: true
+  overwrite-messages:
+    success-message: <#69d9ff>You are now in the <b>Minigames Lobby</b>.
 - name: ffa-lobby
   filter: (?i)^lobby-minestom.*
   permission: ''
@@ -75,6 +114,7 @@ lobbies:
   parent: ''
   parent-groups:
   - main
+  forced-hosts: []
   commands:
     ffa:
       standalone: false
@@ -88,6 +128,7 @@ lobbies:
   priority: 0
   parent: ''
   parent-groups: []
+  forced-hosts: []
   commands:
     base:
       standalone: false
@@ -95,6 +136,18 @@ lobbies:
       hide-on: ^(?!.*).$
   autojoin: true
   overwrite-messages: {}
+- name: ffa
+  filter: (?i)^ffa.*
+  permission: ''
+  priority: -10
+  parent: ''
+  parent-groups:
+  - minigame
+  forced-hosts: []
+  commands: {}
+  autojoin: false
+  overwrite-messages:
+    success-message: <#69d9ff>You are now in <b>FFA</b>.
 placeholder:
   server:
     example: lobby-1

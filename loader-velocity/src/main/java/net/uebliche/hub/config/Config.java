@@ -5,6 +5,7 @@ import net.uebliche.hub.config.messages.Messages;
 import net.uebliche.hub.config.messages.SystemMessages;
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -24,6 +25,7 @@ public class Config {
 
     public SystemMessages systemMessages = new SystemMessages();
     public KickMessage kickMessage = new KickMessage();
+    public I18nConfig i18n = new I18nConfig();
 
 
     public String baseHubCommand = "hub";
@@ -32,9 +34,10 @@ public class Config {
 
     public AutoSelect autoSelect = new AutoSelect();
     public LastLobby lastLobby = new LastLobby();
+    public List<ForcedHost> forcedHosts = List.of();
     public List<LobbyGroup> lobbyGroups = List.of(
             new LobbyGroup("main", List.of("lobby", "teamlobby", "premiumlobby")),
-            new LobbyGroup("minigame", List.of("ffa-lobby"))
+            lobbyGroup("minigame", List.of("minigames-lobby", "ffa-lobby"), "main")
     );
 
     public List<Lobby> lobbies = List.of(
@@ -61,6 +64,24 @@ public class Config {
                     Map.of("ffa", new Command(false, true)),
                     true
             ).setParents(List.of("main")),
+            new Lobby("minigames-lobby",
+                    Pattern.compile("(?i)^lobby-minigames.*", Pattern.CASE_INSENSITIVE),
+                    "",
+                    1,
+                    Map.of("minigames", new Command(false, true)),
+                    true
+            ).setParents(List.of("main")).setMessages(new Messages().setSuccessMessage(
+                    "<#69d9ff>You are now in the <b>Minigames Lobby</b>."
+            )),
+            new Lobby("ffa",
+                    Pattern.compile("(?i)^ffa.*", Pattern.CASE_INSENSITIVE),
+                    "",
+                    -10,
+                    Map.of(),
+                    false
+            ).setParents(List.of("minigame")).setMessages(new Messages().setSuccessMessage(
+                    "<#69d9ff>You are now in <b>FFA</b>."
+            )),
             new Lobby("lobby",
                     Pattern.compile("(?i)^lobby.*", Pattern.CASE_INSENSITIVE),
                     "",
@@ -75,6 +96,12 @@ public class Config {
     public DataCollection dataCollection = new DataCollection();
 
     public Config() {
+    }
+
+    private static LobbyGroup lobbyGroup(String name, List<String> lobbies, String parentGroup) {
+        LobbyGroup group = new LobbyGroup(name, lobbies);
+        group.parentGroup = parentGroup == null ? "" : parentGroup;
+        return group;
     }
 
     @ConfigSerializable
@@ -146,6 +173,23 @@ public class Config {
     public static class Debug {
         public boolean enabled = false;
         public String permission = "hub.debug";
+        public DebugCategories categories = new DebugCategories();
+    }
+
+    @ConfigSerializable
+    public static class DebugCategories {
+        public boolean general = true;
+        public boolean commands = true;
+        public boolean finder = true;
+        public boolean pings = false;
+        public boolean compass = true;
+        public boolean permissions = true;
+        public boolean transfer = true;
+        public boolean events = true;
+        public boolean placeholders = true;
+        public boolean forcedHosts = true;
+        public boolean lastLobby = true;
+        public boolean config = true;
     }
 
     @ConfigSerializable
@@ -153,6 +197,13 @@ public class Config {
         public boolean enabled = true;
         public String prefix = "<red>";
         public String suffix = "";
+    }
+
+    @ConfigSerializable
+    public static class I18nConfig {
+        public String defaultLocale = "en_us";
+        public boolean useClientLocale = true;
+        public Map<String, Map<String, String>> overrides = new HashMap<>();
     }
 
     @ConfigSerializable
@@ -188,6 +239,7 @@ public class Config {
         public String name;
         public List<String> lobbies = List.of();
         public String parentGroup = "";
+        public List<String> forcedHosts = List.of();
 
         public LobbyGroup() {
         }
@@ -195,6 +247,20 @@ public class Config {
         public LobbyGroup(String name, List<String> lobbies) {
             this.name = name;
             this.lobbies = lobbies;
+        }
+    }
+
+    @ConfigSerializable
+    public static class ForcedHost {
+        public String host = "";
+        public String server = "";
+
+        public ForcedHost() {
+        }
+
+        public ForcedHost(String host, String server) {
+            this.host = host;
+            this.server = server;
         }
     }
 }

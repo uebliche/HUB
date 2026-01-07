@@ -130,5 +130,5 @@ loader-minestom-ffa/run/
 /docs/.vitepress/cache
 paper/run/**
 .vscode/
-gradlew-docker-1
+gradlew-docker-*
 loader-velocity/run/

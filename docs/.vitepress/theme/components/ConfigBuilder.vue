@@ -1,5 +1,5 @@
 <template>
-  <div class="config-builder">
+  <div class="config-builder" data-config-mode="proxy">
     <div class="cb-shell">
       <header class="cb-hero">
         <div class="cb-hero-copy">
@@ -15,9 +15,15 @@
         <div class="cb-hero-panel">
           <div class="cb-status" id="cb-status" data-tone="idle" aria-live="polite">Ready</div>
           <div class="cb-meta">Source: <span id="cb-source">defaults</span> | Updated: <span id="cb-updated">never</span></div>
+          <label class="cb-field cb-field-toggle cb-mode-toggle">
+            <span id="cb-mode-label" title="Switch between proxy and lobby server config">Config target: Proxy</span>
+            <input id="cb-mode-toggle" type="checkbox" aria-label="Switch between proxy and lobby config" checked>
+          </label>
+          <p class="cb-note cb-mode-hint" id="cb-mode-hint">Proxy config (Velocity).</p>
           <div class="cb-hero-actions">
             <button type="button" class="cb-btn cb-btn-primary" id="cb-defaults">Use defaults</button>
             <button type="button" class="cb-btn cb-btn-ghost" id="cb-reset">Reset edits</button>
+            <button type="button" class="cb-btn cb-btn-ghost" id="cb-tutorial-start">Tutorial</button>
           </div>
           <label class="cb-file">
             <span title="Load an existing config.yml to edit">Upload config.yml</span>
@@ -40,6 +46,7 @@
       <div class="cb-main">
         <div class="cb-tabs" role="tablist" aria-label="Config sections">
           <button type="button" class="cb-tab is-active" data-tab="core" role="tab" aria-selected="true">Core settings</button>
+          <button type="button" class="cb-tab" data-tab="debug" role="tab" aria-selected="false">Debug</button>
           <button type="button" class="cb-tab" data-tab="messages" role="tab" aria-selected="false">Messages</button>
           <button type="button" class="cb-tab" data-tab="finder" role="tab" aria-selected="false">Finder + Data collection</button>
           <button type="button" class="cb-tab" data-tab="lobbies" role="tab" aria-selected="false">Lobbies</button>
@@ -51,7 +58,7 @@
             <p>Commands, routing, and debug toggles.</p>
           </div>
           <div class="cb-grid-2">
-            <label class="cb-field">
+            <label class="cb-field" data-tutorial="core" data-tutorial-anchor="core">
               <span title="Primary command players use to open the hub">Base command</span>
               <input id="cb-base-command" type="text" placeholder="hub">
               <small>Players use /hub to open the selector.</small>
@@ -61,11 +68,19 @@
               <input id="cb-aliases" type="text" placeholder="lobby leave">
               <small>Separate with spaces.</small>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Regex for server names where /hub should be hidden">Hide base command on lobby (regex)</span>
               <input id="cb-hide-on" type="text" placeholder="^(?!.*).$">
               <small>Matches the current server name. If it matches, /hub is hidden.</small>
             </label>
+            <div class="cb-field cb-span-2">
+              <span title="Map domains directly to server names">Forced hosts (direct servers)</span>
+              <div class="cb-forced-list" id="cb-forced-hosts"></div>
+              <div class="cb-forced-actions">
+                <button type="button" class="cb-btn cb-btn-ghost cb-mini-btn" id="cb-forced-host-add">Add mapping</button>
+              </div>
+              <small>Direct server routing only. Forced hosts for lobbies live in each lobby.</small>
+            </div>
             <label class="cb-field">
               <span title="Automatically select a lobby when a player joins the proxy">Auto-select on join</span>
               <input id="cb-auto-join" type="checkbox">
@@ -78,6 +93,15 @@
               <span title="Try to reconnect players to their last lobby">Remember last lobby</span>
               <input id="cb-last-lobby" type="checkbox">
             </label>
+          </div>
+        </section>
+
+        <section class="cb-card cb-tab-panel" data-tab-panel="debug" style="--cb-delay: 0.055s;">
+          <div class="cb-card-head">
+            <h2>Debug</h2>
+            <p>Control debug access and fine-grained logging categories.</p>
+          </div>
+          <div class="cb-grid-2">
             <label class="cb-field">
               <span title="Enable /hub debug commands">Debug enabled</span>
               <input id="cb-debug-enabled" type="checkbox">
@@ -86,42 +110,124 @@
               <span title="Permission required to use /hub debug">Debug permission</span>
               <input id="cb-debug-permission" type="text" placeholder="hub.debug">
             </label>
+            <div class="cb-field cb-span-2" id="cb-debug-categories">
+              <span title="Choose which debug areas are logged">Debug categories</span>
+              <div class="cb-grid-2">
+                <label class="cb-field">
+                  <span>General</span>
+                  <input id="cb-debug-cat-general" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Commands</span>
+                  <input id="cb-debug-cat-commands" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Finder</span>
+                  <input id="cb-debug-cat-finder" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Pings</span>
+                  <input id="cb-debug-cat-pings" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Compass</span>
+                  <input id="cb-debug-cat-compass" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Permissions</span>
+                  <input id="cb-debug-cat-permissions" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Transfer</span>
+                  <input id="cb-debug-cat-transfer" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Events</span>
+                  <input id="cb-debug-cat-events" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Placeholders</span>
+                  <input id="cb-debug-cat-placeholders" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Forced hosts</span>
+                  <input id="cb-debug-cat-forced-hosts" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Last lobby</span>
+                  <input id="cb-debug-cat-last-lobby" type="checkbox">
+                </label>
+                <label class="cb-field">
+                  <span>Config</span>
+                  <input id="cb-debug-cat-config" type="checkbox">
+                </label>
+              </div>
+              <small>Pings are noisy; keep them off unless you need them.</small>
+            </div>
           </div>
         </section>
 
-        <section class="cb-card cb-tab-panel" data-tab-panel="messages" style="--cb-delay: 0.06s;">
+        <section class="cb-card cb-tab-panel" data-tab-panel="messages" data-tutorial="messages" data-tutorial-anchor="messages" data-tutorial-scroll="false" data-tutorial-align="right" style="--cb-delay: 0.06s;">
           <div class="cb-card-head">
             <h2>Messages</h2>
             <p>Global and system message overrides.</p>
           </div>
           <div class="cb-grid-2 cb-details-grid">
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Message shown after successful hub transfer">Success message</span>
               <textarea id="cb-message-success" rows="2"></textarea>
+              <div class="cb-message-preview" data-preview-for="cb-message-success">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Message shown when already in a hub">Already connected message</span>
               <textarea id="cb-message-already" rows="2"></textarea>
+              <div class="cb-message-preview" data-preview-for="cb-message-already">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Message shown while connecting to a hub">Connection in progress message</span>
               <textarea id="cb-message-progress" rows="2"></textarea>
+              <div class="cb-message-preview" data-preview-for="cb-message-progress">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Message shown if the target lobby server is offline">Server disconnected message</span>
               <textarea id="cb-message-disconnected" rows="2"></textarea>
+              <div class="cb-message-preview" data-preview-for="cb-message-disconnected">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Message shown when a transfer is cancelled">Connection cancelled message</span>
               <textarea id="cb-message-cancelled" rows="2"></textarea>
+              <div class="cb-message-preview" data-preview-for="cb-message-cancelled">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Message when console runs a player-only command">Players only command message</span>
               <textarea id="cb-system-players-only" rows="2"></textarea>
+              <div class="cb-message-preview" data-preview-for="cb-system-players-only">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Message when no lobby server can be found">No lobby found message</span>
               <textarea id="cb-system-no-lobby" rows="2"></textarea>
+              <div class="cb-message-preview" data-preview-for="cb-system-no-lobby">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
             <label class="cb-field">
               <span title="Enable the kick message wrapper">Kick message enabled</span>
@@ -144,7 +250,7 @@
             <p>Configure search timings and runtime data dumps.</p>
           </div>
           <div class="cb-grid-2">
-            <label class="cb-field">
+            <label class="cb-field" data-tutorial="finder" data-tutorial-anchor="finder">
               <span title="Seconds before the first lobby search retry">Finder start duration</span>
               <input id="cb-finder-start" type="number" min="1" step="1">
               <small>Seconds before first retry.</small>
@@ -161,7 +267,7 @@
               <span title="How often to refresh the search (ticks)">Finder refresh (ticks)</span>
               <input id="cb-finder-refresh" type="number" min="1" step="1">
             </label>
-            <label class="cb-field">
+            <label class="cb-field" data-tutorial="finder">
               <span title="Enable runtime data dumps for analysis">Data collection enabled</span>
               <input id="cb-data-collect-enabled" type="checkbox">
             </label>
@@ -196,19 +302,118 @@
             </div>
             <button type="button" class="cb-btn cb-btn-primary" id="cb-add-lobby">Add lobby</button>
           </div>
-          <div class="cb-lobby-layout">
+            <div class="cb-lobby-layout">
             <div class="cb-lobby-side">
               <div class="cb-lobby-side-head">
                 <span>Groups</span>
                 <button type="button" class="cb-btn cb-btn-ghost cb-mini-btn" id="cb-add-group">Add group</button>
               </div>
-              <div class="cb-lobby-list" id="cb-lobby-list"></div>
+              <div class="cb-lobby-list" id="cb-lobby-list" data-tutorial="lobbies"></div>
             </div>
             <div class="cb-lobby-detail">
               <div id="cb-lobbies"></div>
             </div>
           </div>
           <p class="cb-footnote">Each lobby can expose a direct command. Extra commands in uploads are kept as-is.</p>
+        </section>
+
+        <section class="cb-card cb-i18n-panel" style="--cb-delay: 0.16s;">
+          <div class="cb-card-head">
+            <h2>Localization</h2>
+            <p>Server-side translations and per-player locale settings.</p>
+          </div>
+          <div class="cb-grid-2">
+            <label class="cb-field">
+              <span title="Fallback locale when client locale is not used">Default locale</span>
+              <input id="cb-i18n-default-locale" type="text" placeholder="en_us">
+            </label>
+            <label class="cb-field">
+              <span title="Use the player's client locale when available">Use client locale</span>
+              <input id="cb-i18n-use-client" type="checkbox">
+            </label>
+            <div class="cb-field cb-span-2">
+              <span title="Override i18n keys per locale">Translation overrides</span>
+              <div class="cb-forced-list" id="cb-i18n-overrides"></div>
+              <div class="cb-forced-actions">
+                <button type="button" class="cb-btn cb-btn-ghost cb-mini-btn" id="cb-i18n-add-locale">Add locale</button>
+              </div>
+              <small>Overrides apply on top of bundled en_us/de_de. Supports MiniMessage.</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="cb-card cb-lobby-mode-panel" style="--cb-delay: 0.18s;">
+          <div class="cb-card-head">
+            <h2>Lobby server</h2>
+            <p>Basics for Paper, Fabric, and Minestom lobby configs.</p>
+          </div>
+          <div class="cb-grid-2">
+            <label class="cb-field">
+              <span>Compass enabled</span>
+              <input id="cb-lobby-compass-enabled" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span>Navigator enabled</span>
+              <input id="cb-lobby-navigator-enabled" type="checkbox">
+            </label>
+            <label class="cb-field cb-span-2">
+              <span>Compass title</span>
+              <input id="cb-lobby-compass-title" type="text" placeholder="<aqua>Select Lobby">
+            </label>
+            <label class="cb-field cb-span-2">
+              <span>Navigator title</span>
+              <input id="cb-lobby-navigator-title" type="text" placeholder="<aqua>Navigator">
+            </label>
+            <label class="cb-field">
+              <span>Spawn teleport enabled</span>
+              <input id="cb-lobby-spawn-enabled" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span>Join teleport mode</span>
+              <select id="cb-lobby-join-teleport-mode">
+                <option value="none">none</option>
+                <option value="spawn">spawn</option>
+                <option value="last">last</option>
+              </select>
+            </label>
+            <label class="cb-field">
+              <span>Join teleport delay (seconds)</span>
+              <input id="cb-lobby-join-teleport-delay" type="number" min="0" step="1" placeholder="0">
+            </label>
+            <label class="cb-field">
+              <span>Last location max age (seconds)</span>
+              <input id="cb-lobby-join-teleport-max-age" type="number" min="0" step="1" placeholder="0">
+            </label>
+            <label class="cb-field">
+              <span>Lobby NPCs enabled</span>
+              <input id="cb-lobby-npcs-enabled" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span>Lobby signs enabled</span>
+              <input id="cb-lobby-signs-enabled" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span>Disable damage</span>
+              <input id="cb-lobby-gameplay-damage" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span>Disable hunger</span>
+              <input id="cb-lobby-gameplay-hunger" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span>Heal on join</span>
+              <input id="cb-lobby-gameplay-heal" type="checkbox">
+            </label>
+            <label class="cb-field">
+              <span>bStats enabled</span>
+              <input id="cb-lobby-bstats-enabled" type="checkbox">
+            </label>
+            <label class="cb-field cb-span-2">
+              <span>Velocity forwarding secret</span>
+              <input id="cb-lobby-minestom-secret" type="text" placeholder="hubsecret">
+            </label>
+          </div>
+          <p class="cb-footnote">NPC and sign entries are kept from uploads. Edit entries in YAML if needed.</p>
         </section>
 
         <section class="cb-card cb-regex-lab" style="--cb-delay: 0.2s;">
@@ -270,6 +475,28 @@
       </div>
     </div>
   </div>
+
+  <div class="cb-tutorial" id="cb-tutorial" hidden>
+    <div class="cb-tutorial-card" role="dialog" aria-live="polite">
+      <div class="cb-tutorial-head">
+        <div>
+          <p class="cb-tutorial-step" id="cb-tutorial-step">Step</p>
+          <h3 id="cb-tutorial-title">Tutorial</h3>
+        </div>
+        <button type="button" class="cb-btn cb-btn-ghost cb-icon-btn" id="cb-tutorial-close" aria-label="Close tutorial">
+          <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18 6l-12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="cb-tutorial-body" id="cb-tutorial-body"></div>
+      <div class="cb-tutorial-hint" id="cb-tutorial-hint"></div>
+      <div class="cb-tutorial-actions">
+        <button type="button" class="cb-btn cb-btn-ghost" id="cb-tutorial-prev">Back</button>
+        <button type="button" class="cb-btn cb-btn-primary" id="cb-tutorial-next" disabled>Next</button>
+      </div>
+    </div>
   </div>
 
   <div class="cb-modal" id="cb-group-modal" hidden>
@@ -301,6 +528,19 @@
 debug:
   enabled: true
   permission: hub.debug
+  categories:
+    general: true
+    commands: true
+    finder: true
+    pings: false
+    compass: true
+    permissions: true
+    transfer: true
+    events: true
+    placeholders: true
+    forced-hosts: true
+    last-lobby: true
+    config: true
 messages:
   success-message: <#69d9ff>You are now in the <i>Hub</i>.
   already-connected-message: <#ff614d>You are already on the <i>Hub</i>.
@@ -311,6 +551,12 @@ system-messages:
   players-only-command-message: <#ff9c59>This Command is only available to Players.
   no-lobby-found-message: <#ff9c59>I'm sorry! i was unable to find a Lobby Server
     for you.
+i18n:
+  default-locale: en_us
+  use-client-locale: true
+  overrides:
+    en_us: {}
+    de_de: {}
 kick-message:
   enabled: true
   prefix: <red>
@@ -325,15 +571,18 @@ auto-select:
   on-server-kick: true
 last-lobby:
   enabled: true
+forced-hosts: []
 lobby-groups:
 - name: main
   lobbies:
   - lobby
   - teamlobby
   - premiumlobby
+  forced-hosts: []
 - name: minigame
   lobbies:
   - ffa-lobby
+  forced-hosts: []
 lobbies:
 - name: teamlobby
   filter: (?i)^teamlobby.*
@@ -342,6 +591,7 @@ lobbies:
   parent: ''
   parent-groups:
   - lobby
+  forced-hosts: []
   commands:
     teamlobby:
       standalone: false
@@ -356,6 +606,7 @@ lobbies:
   parent: ''
   parent-groups:
   - lobby
+  forced-hosts: []
   commands:
     premiumlobby:
       standalone: true
@@ -371,6 +622,7 @@ lobbies:
   parent: ''
   parent-groups:
   - main
+  forced-hosts: []
   commands:
     ffa:
       standalone: false
@@ -384,6 +636,7 @@ lobbies:
   priority: 0
   parent: ''
   parent-groups: []
+  forced-hosts: []
   commands:
     base:
       standalone: false
@@ -479,7 +732,140 @@ update-checker:
   notification: ''
   check-interval-in-min: 30
   </textarea>
+  <textarea id="cb-default-yaml-lobby" hidden>
+compass:
+  enabled: true
+  gui-title: "<aqua>Select Lobby"
+  cache-ttl-millis: 10000
+  item:
+    name: "<gold>Lobby Compass"
+    lore:
+      - "<gray>Right-click to choose a lobby"
+    material: MAGMA_CREAM
+    slot: 0
+    allow-move: false
+    allow-drop: false
+    drop-on-death: true
+    restore-on-respawn: true
+  allow-drop: false
+  drop-on-death: true
+  restore-on-respawn: true
+  list-item:
+    name: "<gold><lobby>"
+    lore:
+      - "<gray>Server: <yellow><server>"
+      - "<gray>Players: <green><online></dark_gray>/<green><max>"
+      - "<dark_gray>Click to join"
+
+navigator:
+  enabled: true
+  gui-title: "<aqua>Navigator"
+  gui-rows: 0
+  item:
+    name: "<gold>Navigator"
+    lore:
+      - "<gray>Open navigator"
+    material: COMPASS
+    slot: 4
+    allow-move: false
+    allow-drop: false
+    drop-on-death: true
+    restore-on-respawn: true
+  entries:
+    spawn:
+      name: "<gold>Spawn"
+      lore:
+        - "<gray>Teleport to spawn"
+      icon: COMPASS
+      action: teleport
+      world: world
+      x: 0
+      y: 64
+      z: 0
+      yaw: 0
+      pitch: 0
+      slot: 13
+    lobbies:
+      name: "<gold>Lobbies"
+      lore:
+        - "<gray>Open lobby selector"
+      icon: BOOK
+      action: lobby
+      slot: 11
+    lobby:
+      name: "<gold>Lobby"
+      lore:
+        - "<gray>Join lobby server"
+      icon: ENDER_PEARL
+      action: server
+      server: lobby
+      slot: 15
+
+i18n:
+  default-locale: en_us
+  use-client-locale: true
+  overrides:
+    en_us: {}
+    de_de: {}
+
+spawn-teleport:
+  enabled: false
+  world: world
+  x: 0
+  y: 64
+  z: 0
+  yaw: 0
+  pitch: 0
+
+join-teleport:
+  mode: none
+  delay-seconds: 0
+  last-location:
+    max-age-seconds: 0
+
+lobby-npcs:
+  enabled: false
+  entries:
+    lobby:
+      world: world
+      x: 0
+      y: 64
+      z: 0
+      yaw: 0
+      pitch: 0
+      name: "<gold>Lobby"
+      entity: VILLAGER
+      action: server
+      server: lobby
+
+lobby-signs:
+  enabled: false
+  entries:
+    lobby:
+      world: world
+      x: 2
+      y: 64
+      z: 0
+      lines:
+        - "<gold>Lobby"
+        - "<gray>Click to join"
+      action: server
+      server: lobby
+
+gameplay:
+  disable-damage: true
+  disable-hunger: true
+  heal-on-join: true
+
+minestom:
+  velocity-secret: "hubsecret"
+
+bstats:
+  enabled: true
+  service-id: 0
+  </textarea>
   <datalist id="cb-server-suggestions"></datalist>
+</div>
 </template>
 
 <script setup>
@@ -489,6 +875,9 @@ onMounted(() => {
   const statusEl = document.getElementById('cb-status');
   const sourceEl = document.getElementById('cb-source');
   const updatedEl = document.getElementById('cb-updated');
+  const modeToggle = document.getElementById('cb-mode-toggle');
+  const modeLabel = document.getElementById('cb-mode-label');
+  const modeHint = document.getElementById('cb-mode-hint');
   const outputEl = document.getElementById('cb-output');
   const fileInput = document.getElementById('cb-file');
   const defaultsBtn = document.getElementById('cb-defaults');
@@ -509,6 +898,7 @@ onMounted(() => {
   const groupsEl = document.getElementById('cb-groups');
   const lobbiesListEl = document.getElementById('cb-lobby-list');
   const lobbiesEl = document.getElementById('cb-lobbies');
+  const debugCategoriesEl = document.getElementById('cb-debug-categories');
   const groupModal = document.getElementById('cb-group-modal');
   const groupModalInput = document.getElementById('cb-group-modal-input');
   const groupModalCreate = document.getElementById('cb-group-modal-create');
@@ -533,10 +923,19 @@ onMounted(() => {
   const activityCard = document.querySelector('.cb-activity');
   const zonesEl = document.getElementById('cb-zones');
   const offlineList = document.getElementById('cb-offline-list');
+  const tutorialEl = document.getElementById('cb-tutorial');
+  const tutorialStart = document.getElementById('cb-tutorial-start');
+  const tutorialTitle = document.getElementById('cb-tutorial-title');
+  const tutorialBody = document.getElementById('cb-tutorial-body');
+  const tutorialStep = document.getElementById('cb-tutorial-step');
+  const tutorialHint = document.getElementById('cb-tutorial-hint');
+  const tutorialPrev = document.getElementById('cb-tutorial-prev');
+  const tutorialNext = document.getElementById('cb-tutorial-next');
+  const tutorialClose = document.getElementById('cb-tutorial-close');
   const tabButtons = Array.from(document.querySelectorAll('[data-tab]'));
   const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
 
-  if (!statusEl || !sourceEl || !updatedEl || !outputEl || !fileInput || !defaultsBtn || !resetBtn || !downloadBtn
+  if (!statusEl || !sourceEl || !updatedEl || !modeToggle || !modeLabel || !modeHint || !outputEl || !fileInput || !defaultsBtn || !resetBtn || !downloadBtn
     || !copyBtn || !pasteArea || !pasteLoadBtn || !pasteClearBtn || !serverSuggestions || !lobbiesEl || !lobbiesListEl
     || !groupModal || !groupModalInput || !groupModalCreate || !groupModalCancel
     || !regexLab || !regexToggle
@@ -546,6 +945,74 @@ onMounted(() => {
 
   let regexContext = 'lobby';
   const regexTestCache = { lobby: '', hide: '' };
+  const isProxyMode = () => configMode === 'proxy';
+  const isLobbyMode = () => configMode === 'lobby';
+  const withLobbyMode = (handler) => () => {
+    if (!isLobbyMode()) {
+      return;
+    }
+    handler();
+  };
+
+  const applyModeUi = () => {
+    if (builderRoot) {
+      builderRoot.dataset.configMode = configMode;
+    }
+    if (modeToggle) {
+      modeToggle.checked = configMode === 'proxy';
+    }
+    if (modeLabel) {
+      modeLabel.textContent = configMode === 'proxy' ? 'Config target: Proxy' : 'Config target: Lobby';
+    }
+    if (modeHint) {
+      modeHint.textContent = configMode === 'proxy'
+        ? 'Proxy config (Velocity).'
+        : 'Lobby server config (Paper/Fabric/Minestom).';
+    }
+  };
+
+  const setConfigMode = (nextMode, options = {}) => {
+    const desired = nextMode === 'lobby' ? 'lobby' : 'proxy';
+    if (configMode === desired && !options.force) {
+      return;
+    }
+    configMode = desired;
+    defaultConfig = configMode === 'lobby' ? defaultConfigLobby : defaultConfigProxy;
+    applyModeUi();
+    if (options.loadDefaults) {
+      applyLoadedConfig(defaultConfig, 'defaults', { mode: configMode });
+    }
+  };
+
+  const detectConfigMode = (raw) => {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+    const proxyKeys = ['lobbies', 'lobby-groups', 'base-hub-command', 'hide-hub-command-on-lobby', 'auto-select', 'last-lobby'];
+    const lobbyKeys = ['compass', 'navigator', 'spawn-teleport', 'join-teleport', 'gameplay', 'lobby-npcs', 'lobby-signs', 'minestom', 'bstats'];
+    let proxyScore = 0;
+    let lobbyScore = 0;
+    proxyKeys.forEach((key) => {
+      if (raw[key] !== undefined) {
+        proxyScore += 1;
+      }
+    });
+    lobbyKeys.forEach((key) => {
+      if (raw[key] !== undefined) {
+        lobbyScore += 1;
+      }
+    });
+    if (proxyScore === 0 && lobbyScore === 0) {
+      return null;
+    }
+    if (lobbyScore > proxyScore) {
+      return 'lobby';
+    }
+    if (proxyScore > lobbyScore) {
+      return 'proxy';
+    }
+    return null;
+  };
 
   const setRegexContext = (tabId) => {
     if (!regexInput || !regexTest || !regexResult) {
@@ -602,6 +1069,12 @@ onMounted(() => {
       panel.classList.toggle('is-active', panel.dataset.tabPanel === tabId);
     });
     setRegexContext(tabId);
+    if (tutorialEl && !tutorialEl.hidden && !tutorialState.dismissed && !tutorialState.completed) {
+      const step = tutorialSteps[tutorialState.stepIndex || 0];
+      const stepId = step ? step.id : '';
+      updateTutorialHighlights(stepId);
+      scheduleTutorialPosition(stepId);
+    }
   };
 
   const inputs = {
@@ -623,6 +1096,8 @@ onMounted(() => {
     kickEnabled: document.getElementById('cb-kick-enabled'),
     kickPrefix: document.getElementById('cb-kick-prefix'),
     kickSuffix: document.getElementById('cb-kick-suffix'),
+    i18nDefaultLocale: document.getElementById('cb-i18n-default-locale'),
+    i18nUseClient: document.getElementById('cb-i18n-use-client'),
     finderStart: document.getElementById('cb-finder-start'),
     finderIncrement: document.getElementById('cb-finder-increment'),
     finderMax: document.getElementById('cb-finder-max'),
@@ -632,23 +1107,84 @@ onMounted(() => {
     dataCollectFile: document.getElementById('cb-data-collect-file'),
     dataCollectInterval: document.getElementById('cb-data-collect-interval'),
     dataCollectUsers: document.getElementById('cb-data-collect-users'),
-    dataCollectServers: document.getElementById('cb-data-collect-servers')
+    dataCollectServers: document.getElementById('cb-data-collect-servers'),
+  };
+  const lobbyInputs = {
+    compassEnabled: document.getElementById('cb-lobby-compass-enabled'),
+    compassTitle: document.getElementById('cb-lobby-compass-title'),
+    navigatorEnabled: document.getElementById('cb-lobby-navigator-enabled'),
+    navigatorTitle: document.getElementById('cb-lobby-navigator-title'),
+    spawnTeleportEnabled: document.getElementById('cb-lobby-spawn-enabled'),
+    joinTeleportMode: document.getElementById('cb-lobby-join-teleport-mode'),
+    joinTeleportDelay: document.getElementById('cb-lobby-join-teleport-delay'),
+    joinTeleportMaxAge: document.getElementById('cb-lobby-join-teleport-max-age'),
+    npcEnabled: document.getElementById('cb-lobby-npcs-enabled'),
+    signEnabled: document.getElementById('cb-lobby-signs-enabled'),
+    gameplayDamage: document.getElementById('cb-lobby-gameplay-damage'),
+    gameplayHunger: document.getElementById('cb-lobby-gameplay-hunger'),
+    gameplayHeal: document.getElementById('cb-lobby-gameplay-heal'),
+    bstatsEnabled: document.getElementById('cb-lobby-bstats-enabled'),
+    minestomSecret: document.getElementById('cb-lobby-minestom-secret')
+  };
+  const debugCategoryInputs = {
+    general: document.getElementById('cb-debug-cat-general'),
+    commands: document.getElementById('cb-debug-cat-commands'),
+    finder: document.getElementById('cb-debug-cat-finder'),
+    pings: document.getElementById('cb-debug-cat-pings'),
+    compass: document.getElementById('cb-debug-cat-compass'),
+    permissions: document.getElementById('cb-debug-cat-permissions'),
+    transfer: document.getElementById('cb-debug-cat-transfer'),
+    events: document.getElementById('cb-debug-cat-events'),
+    placeholders: document.getElementById('cb-debug-cat-placeholders'),
+    'forced-hosts': document.getElementById('cb-debug-cat-forced-hosts'),
+    'last-lobby': document.getElementById('cb-debug-cat-last-lobby'),
+    config: document.getElementById('cb-debug-cat-config'),
   };
 
+  const fallbackDebugCategories = {
+    general: true,
+    commands: true,
+    finder: true,
+    pings: false,
+    compass: true,
+    permissions: true,
+    transfer: true,
+    events: true,
+    placeholders: true,
+    'forced-hosts': true,
+    'last-lobby': true,
+    config: true
+  };
+  const fallbackI18nLocales = ['en_us', 'de_de'];
+  const forcedHostsList = document.getElementById('cb-forced-hosts');
+  const forcedHostsAdd = document.getElementById('cb-forced-host-add');
+  const i18nOverridesList = document.getElementById('cb-i18n-overrides');
+  const i18nAddLocale = document.getElementById('cb-i18n-add-locale');
+
+  const builderRoot = document.querySelector('.config-builder');
   let yamlLib;
   let config = {};
   let baselineConfig = {};
   let defaultConfig = {};
+  let defaultConfigProxy = {};
+  let defaultConfigLobby = {};
+  let configMode = 'proxy';
   let currentDownloadUrl = null;
   let analysisData = { servers: [], users: [] };
   let selectedUserId = '';
   let activeLobby = null;
+  let lobbySubTab = 'details';
   let draggingLobby = null;
   let draggingGroup = '';
   let pendingGroupSelect = null;
   let pendingGroupLobby = null;
   let pendingGroupPrevious = '';
   let userIndex = new Map();
+  let forcedHostDrafts = [];
+  let i18nOverrideDrafts = [];
+  const messagePreviewMap = new Map();
+  const overridePreviewMap = new Map();
+  const fallbackBound = new WeakSet();
   const avatarCache = new Map();
   const fallbackActivity = {
     servers: ['lobby-eu-1', 'lobby-us-1', 'teamlobby-eu-1', 'premiumlobby-1', 'ffa-1', 'lobby-minestom-1'],
@@ -671,11 +1207,54 @@ onMounted(() => {
     historyLimit: 8
   };
   const userStatus = new Map();
+  const tutorialStorageKey = 'hub-config-builder-tutorial-v1';
+  let tutorialState = loadTutorialState();
+  const tutorialSteps = [
+    {
+      id: 'core',
+      tab: 'core',
+      title: 'Core settings',
+      body: 'Core settings are already good. Just review them before moving on.',
+      requirement: 'No action needed.',
+      isComplete: () => true
+    },
+    {
+      id: 'messages',
+      tab: 'messages',
+      title: 'Messages',
+      body: 'Edit at least one message so players get the right feedback.',
+      requirement: 'Optional: change a message if you want custom copy.',
+      isComplete: () => tutorialState.actions.messagesEdited
+    },
+    {
+      id: 'finder',
+      tab: 'finder',
+      title: 'Finder + Data',
+      body: 'Adjust finder timings or data collection so routing is tuned.',
+      requirement: 'Optional: tweak a finder or data collection field.',
+      isComplete: () => tutorialState.actions.finderEdited
+    },
+    {
+      id: 'lobbies',
+      tab: 'lobbies',
+      title: 'Lobbies',
+      body: 'Edit a lobby filter and test grouping via drag & drop.',
+      requirement: 'Optional: try editing a filter or moving a lobby between groups.',
+      isComplete: () => tutorialState.actions.lobbyFilterEdited
+        && tutorialState.actions.lobbyGrouped
+        && tutorialState.actions.lobbyUngrouped
+    }
+  ];
+
+  const isTutorialActive = () => Boolean(tutorialEl && !tutorialEl.hidden && !tutorialState.dismissed && !tutorialState.completed);
 
   if (tabButtons.length && tabPanels.length) {
     setActiveTab(tabButtons[0].dataset.tab);
     tabButtons.forEach((button) => {
       button.addEventListener('click', () => {
+        if (isTutorialActive()) {
+          return;
+        }
         setActiveTab(button.dataset.tab);
       });
     });
@@ -694,9 +1273,278 @@ onMounted(() => {
     updatedEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  function loadTutorialState() {
+    const base = {
+      stepIndex: 0,
+      dismissed: false,
+      completed: false,
+      actions: {
+        coreEdited: false,
+        messagesEdited: false,
+        finderEdited: false,
+        lobbyFilterEdited: false,
+        lobbyGrouped: false,
+        lobbyUngrouped: false
+      }
+    };
+    if (typeof window === 'undefined' || !tutorialStorageKey) {
+      return base;
+    }
+    try {
+      const stored = localStorage.getItem(tutorialStorageKey);
+      if (!stored) {
+        return base;
+      }
+      const parsed = JSON.parse(stored);
+      return {
+        ...base,
+        ...parsed,
+        actions: {
+          ...base.actions,
+          ...(parsed && parsed.actions ? parsed.actions : {})
+        }
+      };
+    } catch (error) {
+      return base;
+    }
+  }
+
+  function saveTutorialState() {
+    if (typeof window === 'undefined' || !tutorialStorageKey) {
+      return;
+    }
+    try {
+      localStorage.setItem(tutorialStorageKey, JSON.stringify(tutorialState));
+    } catch (error) {
+      // ignore storage errors
+    }
+  }
+
+  function resetTutorialState() {
+    tutorialState = loadTutorialState();
+    tutorialState.stepIndex = 0;
+    tutorialState.dismissed = false;
+    tutorialState.completed = false;
+    tutorialState.actions = {
+      coreEdited: false,
+      messagesEdited: false,
+      finderEdited: false,
+      lobbyFilterEdited: false,
+      lobbyGrouped: false,
+      lobbyUngrouped: false
+    };
+    saveTutorialState();
+  }
+
+  function markTutorialAction(actionKey) {
+    if (!tutorialEl || !tutorialState.actions || !actionKey) {
+      return;
+    }
+    if (tutorialState.actions[actionKey]) {
+      return;
+    }
+    tutorialState.actions[actionKey] = true;
+    saveTutorialState();
+    renderTutorial();
+  }
+
+  function clearTutorialHighlights() {
+    document.querySelectorAll('.cb-tutorial-highlight').forEach((el) => {
+      el.classList.remove('cb-tutorial-highlight');
+    });
+  }
+
+  function updateTutorialHighlights(stepId) {
+    clearTutorialHighlights();
+    if (!stepId) {
+      const builder = document.querySelector('.config-builder');
+      if (builder) {
+        builder.removeAttribute('data-tutorial-step');
+      }
+      return;
+    }
+    const builder = document.querySelector('.config-builder');
+    if (builder) {
+      builder.setAttribute('data-tutorial-step', stepId);
+    }
+    document.querySelectorAll('[data-tutorial]').forEach((el) => {
+      const tokens = (el.getAttribute('data-tutorial') || '').split(/\s+/).filter(Boolean);
+      if (tokens.includes(stepId)) {
+        el.classList.add('cb-tutorial-highlight');
+      }
+    });
+  }
+
+  function resetTutorialPosition() {
+    if (!tutorialEl) {
+      return;
+    }
+    tutorialEl.style.left = '';
+    tutorialEl.style.top = '';
+    tutorialEl.style.right = '';
+    tutorialEl.style.bottom = '';
+  }
+
+  function getTutorialAnchor(stepId) {
+    if (!stepId) {
+      return null;
+    }
+    return document.querySelector(`[data-tutorial-anchor~="${stepId}"]`)
+      || document.querySelector(`[data-tutorial~="${stepId}"]`);
+  }
+
+  function positionTutorial(stepId) {
+    if (!tutorialEl || tutorialEl.hidden) {
+      return;
+    }
+    const card = tutorialEl.querySelector('.cb-tutorial-card');
+    if (!card) {
+      return;
+    }
+    const target = getTutorialAnchor(stepId);
+    if (!target) {
+      resetTutorialPosition();
+      return;
+    }
+    const rect = target.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const margin = 16;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const align = (target.getAttribute('data-tutorial-align') || '').toLowerCase();
+    let left = margin;
+    let top = margin;
+
+    if (align === 'right') {
+      const preferredLeft = rect.right + margin;
+      const rightDock = viewportW - cardRect.width - margin;
+      left = preferredLeft + cardRect.width <= viewportW - margin
+        ? preferredLeft
+        : rightDock;
+      top = clamp(rect.top, margin, viewportH - cardRect.height - margin);
+      tutorialEl.style.left = `${Math.round(left)}px`;
+      tutorialEl.style.top = `${Math.round(top)}px`;
+      tutorialEl.style.right = 'auto';
+      tutorialEl.style.bottom = 'auto';
+      const allowAutoScroll = target.getAttribute('data-tutorial-scroll') !== 'false';
+      const focusMargin = 80;
+      if (allowAutoScroll && (rect.top < focusMargin || rect.bottom > viewportH - focusMargin)) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    const fitsRight = rect.right + margin + cardRect.width <= viewportW - margin;
+    const fitsLeft = rect.left - margin - cardRect.width >= margin;
+    const fitsBelow = rect.bottom + margin + cardRect.height <= viewportH - margin;
+    const fitsAbove = rect.top - margin - cardRect.height >= margin;
+
+    if (fitsRight) {
+      left = rect.right + margin;
+      top = clamp(rect.top, margin, viewportH - cardRect.height - margin);
+    } else if (fitsLeft) {
+      left = rect.left - margin - cardRect.width;
+      top = clamp(rect.top, margin, viewportH - cardRect.height - margin);
+    } else if (fitsBelow) {
+      left = clamp(rect.left, margin, viewportW - cardRect.width - margin);
+      top = rect.bottom + margin;
+    } else if (fitsAbove) {
+      left = clamp(rect.left, margin, viewportW - cardRect.width - margin);
+      top = rect.top - margin - cardRect.height;
+    } else {
+      left = clamp(rect.left, margin, viewportW - cardRect.width - margin);
+      top = clamp(rect.top, margin, viewportH - cardRect.height - margin);
+    }
+
+    const allowAutoScroll = target.getAttribute('data-tutorial-scroll') !== 'false';
+    const focusMargin = 80;
+    if (allowAutoScroll && (rect.top < focusMargin || rect.bottom > viewportH - focusMargin)) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    tutorialEl.style.left = `${Math.round(left)}px`;
+    tutorialEl.style.top = `${Math.round(top)}px`;
+    tutorialEl.style.right = 'auto';
+    tutorialEl.style.bottom = 'auto';
+  }
+
+  let tutorialPositionRaf = null;
+  function scheduleTutorialPosition(stepId) {
+    if (tutorialPositionRaf) {
+      cancelAnimationFrame(tutorialPositionRaf);
+    }
+    tutorialPositionRaf = requestAnimationFrame(() => positionTutorial(stepId));
+  }
+
+  function setTutorialStep(index) {
+    if (!tutorialEl || !tutorialSteps.length) {
+      return;
+    }
+    const maxIndex = tutorialSteps.length - 1;
+    const nextIndex = Math.min(Math.max(index, 0), maxIndex);
+    tutorialState.stepIndex = nextIndex;
+    saveTutorialState();
+    const step = tutorialSteps[nextIndex];
+    if (step && step.tab) {
+      setActiveTab(step.tab);
+    }
+    renderTutorial();
+  }
+
+  function renderTutorial() {
+    if (!tutorialEl || !tutorialTitle || !tutorialBody || !tutorialStep || !tutorialHint || !tutorialPrev || !tutorialNext) {
+      return;
+    }
+    if (tutorialState.dismissed || tutorialState.completed) {
+      tutorialEl.hidden = true;
+      clearTutorialHighlights();
+      resetTutorialPosition();
+      const builder = document.querySelector('.config-builder');
+      if (builder) {
+        builder.removeAttribute('data-tutorial-step');
+      }
+      tabButtons.forEach((button) => {
+        button.disabled = false;
+        button.setAttribute('aria-disabled', 'false');
+      });
+      return;
+    }
+    const stepIndex = Math.min(Math.max(tutorialState.stepIndex || 0, 0), tutorialSteps.length - 1);
+    const step = tutorialSteps[stepIndex];
+    if (!step) {
+      tutorialEl.hidden = true;
+      clearTutorialHighlights();
+      resetTutorialPosition();
+      const builder = document.querySelector('.config-builder');
+      if (builder) {
+        builder.removeAttribute('data-tutorial-step');
+      }
+      tabButtons.forEach((button) => {
+        button.disabled = false;
+        button.setAttribute('aria-disabled', 'false');
+      });
+      return;
+    }
+    tutorialEl.hidden = false;
+    tabButtons.forEach((button) => {
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+    });
+    tutorialStep.textContent = `Step ${stepIndex + 1} / ${tutorialSteps.length}`;
+    tutorialTitle.textContent = step.title;
+    tutorialBody.innerHTML = `<p>${step.body}</p>`;
+    tutorialHint.textContent = step.requirement;
+    tutorialNext.disabled = false;
+    tutorialPrev.disabled = stepIndex === 0;
+    tutorialNext.textContent = stepIndex === tutorialSteps.length - 1 ? 'Done' : 'Next';
+    updateTutorialHighlights(step.id);
+    scheduleTutorialPosition(step.id);
+  }
+
   function enhanceHints(root) {
     const scope = root || document;
-    const hintTargets = scope.querySelectorAll('label.cb-field > span[title], label.cb-file > span[title]');
+    const hintTargets = scope.querySelectorAll('.cb-field > span[title], label.cb-file > span[title]');
     hintTargets.forEach((el) => {
       const hint = el.getAttribute('title');
       if (!hint || el.dataset.hint) {
@@ -715,6 +1563,10 @@ onMounted(() => {
 
   function updateSummary() {
     if (!summaryEl) {
+      return;
+    }
+    if (configMode === 'lobby') {
+      summaryEl.innerHTML = '<p class="cb-summary-note">Lobby config loaded.</p>';
       return;
     }
     const groupsCount = Array.isArray(config['lobby-groups']) ? config['lobby-groups'].length : 0;
@@ -2596,17 +3448,63 @@ onMounted(() => {
     return out;
   }
 
-  function normalizeConfig(raw) {
+  function setDebugCategoryVisibility(enabled) {
+    if (!debugCategoriesEl) {
+      return;
+    }
+    debugCategoriesEl.hidden = !enabled;
+    Object.values(debugCategoryInputs).forEach((input) => {
+      if (input) {
+        input.disabled = !enabled;
+      }
+    });
+  }
+
+  function getDefaultDebugCategories() {
+    const defaults = defaultConfig?.debug?.categories;
+    const base = defaults && typeof defaults === 'object' ? defaults : {};
+    return { ...fallbackDebugCategories, ...base };
+  }
+
+  function normalizeDebugCategories(raw) {
+    const base = getDefaultDebugCategories();
+    const data = raw && typeof raw === 'object' ? raw : {};
+    const out = { ...base, ...data };
+    if (out['forced-hosts'] === undefined && out.forcedHosts !== undefined) {
+      out['forced-hosts'] = out.forcedHosts;
+    }
+    if (out['last-lobby'] === undefined && out.lastLobby !== undefined) {
+      out['last-lobby'] = out.lastLobby;
+    }
+    delete out.forcedHosts;
+    delete out.lastLobby;
+    return out;
+  }
+
+  function normalizeProxyConfig(raw) {
     let next = raw && typeof raw === 'object' ? raw : {};
     next = mergeDefaults(next, defaultConfig);
     next.aliases = Array.isArray(next.aliases) ? next.aliases : [];
     next['auto-select'] = next['auto-select'] && typeof next['auto-select'] === 'object' ? next['auto-select'] : {};
     next['last-lobby'] = next['last-lobby'] && typeof next['last-lobby'] === 'object' ? next['last-lobby'] : {};
     next.debug = next.debug && typeof next.debug === 'object' ? next.debug : {};
+    next.debug.categories = normalizeDebugCategories(next.debug.categories);
     next.messages = next.messages && typeof next.messages === 'object' ? next.messages : {};
     next['system-messages'] = next['system-messages'] && typeof next['system-messages'] === 'object' ? next['system-messages'] : {};
+    next.i18n = next.i18n && typeof next.i18n === 'object' ? next.i18n : {};
+    if (defaultConfig?.i18n && typeof defaultConfig.i18n === 'object') {
+      next.i18n = mergeDefaults(next.i18n, defaultConfig.i18n);
+    }
+    if (!next.i18n['default-locale']) {
+      next.i18n['default-locale'] = 'en_us';
+    }
+    if (next.i18n['use-client-locale'] === undefined) {
+      next.i18n['use-client-locale'] = true;
+    }
+    next.i18n.overrides = next.i18n.overrides && typeof next.i18n.overrides === 'object' ? next.i18n.overrides : {};
     next['kick-message'] = next['kick-message'] && typeof next['kick-message'] === 'object' ? next['kick-message'] : {};
     next.finder = next.finder && typeof next.finder === 'object' ? next.finder : {};
+    next['forced-hosts'] = normalizeForcedHostEntries(next['forced-hosts']);
     next['data-collection'] = next['data-collection'] && typeof next['data-collection'] === 'object'
       ? next['data-collection']
       : {};
@@ -2620,6 +3518,7 @@ onMounted(() => {
       priority: 0,
       parent: '',
       'parent-groups': [],
+      'forced-hosts': [],
       commands: {},
       autojoin: true,
       'overwrite-messages': {}
@@ -2627,8 +3526,9 @@ onMounted(() => {
 
     next['lobby-groups'] = next['lobby-groups'].map((group) => {
       const normalized = group && typeof group === 'object' ? group : {};
-      const merged = mergeDefaults(normalized, { name: '', lobbies: [] });
+      const merged = mergeDefaults(normalized, { name: '', lobbies: [], 'forced-hosts': [] });
       merged.lobbies = Array.isArray(merged.lobbies) ? merged.lobbies : [];
+      merged['forced-hosts'] = Array.isArray(merged['forced-hosts']) ? merged['forced-hosts'] : [];
       return merged;
     });
 
@@ -2636,6 +3536,7 @@ onMounted(() => {
       const normalized = lobby && typeof lobby === 'object' ? lobby : {};
       const merged = mergeDefaults(normalized, lobbyDefaults);
       merged['parent-groups'] = Array.isArray(merged['parent-groups']) ? merged['parent-groups'] : [];
+      merged['forced-hosts'] = Array.isArray(merged['forced-hosts']) ? merged['forced-hosts'] : [];
       merged.commands = merged.commands && typeof merged.commands === 'object' ? merged.commands : {};
       merged['overwrite-messages'] = merged['overwrite-messages'] && typeof merged['overwrite-messages'] === 'object' ? merged['overwrite-messages'] : {};
       merged.priority = Number.isFinite(Number(merged.priority)) ? Number(merged.priority) : 0;
@@ -2643,6 +3544,51 @@ onMounted(() => {
     });
 
     return next;
+  }
+
+  function normalizeLobbyConfig(raw) {
+    let next = raw && typeof raw === 'object' ? raw : {};
+    next = mergeDefaults(next, defaultConfigLobby);
+    next.compass = next.compass && typeof next.compass === 'object' ? next.compass : {};
+    next.navigator = next.navigator && typeof next.navigator === 'object' ? next.navigator : {};
+    next.i18n = next.i18n && typeof next.i18n === 'object' ? next.i18n : {};
+    if (defaultConfigLobby?.i18n && typeof defaultConfigLobby.i18n === 'object') {
+      next.i18n = mergeDefaults(next.i18n, defaultConfigLobby.i18n);
+    }
+    if (!next.i18n['default-locale']) {
+      next.i18n['default-locale'] = 'en_us';
+    }
+    if (next.i18n['use-client-locale'] === undefined) {
+      next.i18n['use-client-locale'] = true;
+    }
+    next.i18n.overrides = next.i18n.overrides && typeof next.i18n.overrides === 'object' ? next.i18n.overrides : {};
+    next['spawn-teleport'] = next['spawn-teleport'] && typeof next['spawn-teleport'] === 'object' ? next['spawn-teleport'] : {};
+    next['join-teleport'] = next['join-teleport'] && typeof next['join-teleport'] === 'object' ? next['join-teleport'] : {};
+    next['join-teleport'].mode = next['join-teleport'].mode
+      || (next['spawn-teleport']?.enabled ? 'spawn' : 'none');
+    next['join-teleport']['delay-seconds'] = Number.isFinite(Number(next['join-teleport']['delay-seconds']))
+      ? Number(next['join-teleport']['delay-seconds'])
+      : 0;
+    next['join-teleport']['last-location'] = next['join-teleport']['last-location']
+      && typeof next['join-teleport']['last-location'] === 'object'
+      ? next['join-teleport']['last-location']
+      : {};
+    next['join-teleport']['last-location']['max-age-seconds'] = Number.isFinite(Number(next['join-teleport']['last-location']['max-age-seconds']))
+      ? Number(next['join-teleport']['last-location']['max-age-seconds'])
+      : 0;
+    next.gameplay = next.gameplay && typeof next.gameplay === 'object' ? next.gameplay : {};
+    next['lobby-npcs'] = next['lobby-npcs'] && typeof next['lobby-npcs'] === 'object' ? next['lobby-npcs'] : {};
+    next['lobby-signs'] = next['lobby-signs'] && typeof next['lobby-signs'] === 'object' ? next['lobby-signs'] : {};
+    next.minestom = next.minestom && typeof next.minestom === 'object' ? next.minestom : {};
+    next.bstats = next.bstats && typeof next.bstats === 'object' ? next.bstats : {};
+    return next;
+  }
+
+  function normalizeConfig(raw, mode) {
+    if (mode === 'lobby') {
+      return normalizeLobbyConfig(raw);
+    }
+    return normalizeProxyConfig(raw);
   }
 
   function parseList(value) {
@@ -2659,6 +3605,271 @@ onMounted(() => {
       .filter(Boolean);
   }
 
+  function parseHostList(value) {
+    return value
+      .split(/[,\s]+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderMiniMessage(input) {
+    const text = String(input || '');
+    if (!text) {
+      return '';
+    }
+    const namedColors = {
+      black: '#1b2a29',
+      dark_gray: '#4f615f',
+      gray: '#9ba9a6',
+      white: '#ffffff',
+      red: '#ff614d',
+      green: '#36c28a',
+      yellow: '#f3d46b',
+      gold: '#f0b356',
+      blue: '#4f7cff',
+      aqua: '#69d9ff',
+      light_purple: '#c48bff'
+    };
+    const tokens = text.split(/(<[^>]+>)/g).filter(Boolean);
+    let html = '';
+    let colorOpen = false;
+    const openTags = [];
+
+    const openTag = (tag) => {
+      html += `<${tag}>`;
+      openTags.push(tag);
+    };
+    const closeTag = (tag) => {
+      html += `</${tag}>`;
+      const idx = openTags.lastIndexOf(tag);
+      if (idx >= 0) {
+        openTags.splice(idx, 1);
+      }
+    };
+    const closeAll = () => {
+      for (let i = openTags.length - 1; i >= 0; i -= 1) {
+        html += `</${openTags[i]}>`;
+      }
+      openTags.length = 0;
+      if (colorOpen) {
+        html += '</span>';
+        colorOpen = false;
+      }
+    };
+
+    tokens.forEach((token) => {
+      if (token.startsWith('<') && token.endsWith('>')) {
+        const raw = token.slice(1, -1).trim();
+        const lower = raw.toLowerCase();
+        if (!raw) {
+          return;
+        }
+        if (lower === 'i' || lower === 'italic') {
+          openTag('em');
+          return;
+        }
+        if (lower === '/i' || lower === '/italic') {
+          closeTag('em');
+          return;
+        }
+        if (lower === 'b' || lower === 'bold') {
+          openTag('strong');
+          return;
+        }
+        if (lower === '/b' || lower === '/bold') {
+          closeTag('strong');
+          return;
+        }
+        if (lower === 'u' || lower === 'underlined' || lower === 'underline') {
+          html += '<span class="cb-mini-underline">';
+          openTags.push('span');
+          return;
+        }
+        if (lower === '/u' || lower === '/underlined' || lower === '/underline') {
+          closeTag('span');
+          return;
+        }
+        if (lower === 'br') {
+          html += '<br>';
+          return;
+        }
+        if (lower === 'reset' || lower === 'r') {
+          closeAll();
+          return;
+        }
+        if (raw.startsWith('#') && /^[0-9a-fA-F]{6}$/.test(raw.slice(1))) {
+          if (colorOpen) {
+            html += '</span>';
+          }
+          html += `<span style="color:#${raw.slice(1)}">`;
+          colorOpen = true;
+          return;
+        }
+        if (namedColors[lower]) {
+          if (colorOpen) {
+            html += '</span>';
+          }
+          html += `<span style="color:${namedColors[lower]}">`;
+          colorOpen = true;
+          return;
+        }
+        if (lower === '/#' || lower === '/color' || lower === '/c') {
+          if (colorOpen) {
+            html += '</span>';
+            colorOpen = false;
+          }
+          return;
+        }
+        html += escapeHtml(token);
+        return;
+      }
+      html += escapeHtml(token);
+    });
+    if (colorOpen) {
+      html += '</span>';
+    }
+    for (let i = openTags.length - 1; i >= 0; i -= 1) {
+      html += `</${openTags[i]}>`;
+    }
+    return html.replace(/\n/g, '<br>');
+  }
+
+  function initMessagePreviews() {
+    document.querySelectorAll('.cb-message-preview').forEach((preview) => {
+      const id = preview.getAttribute('data-preview-for');
+      const input = id ? document.getElementById(id) : null;
+      const body = preview.querySelector('.cb-message-preview-body');
+      if (!input || !body) {
+        return;
+      }
+      messagePreviewMap.set(input, body);
+      preview.addEventListener('click', () => {
+        input.focus();
+        input.selectionStart = input.value.length;
+        input.selectionEnd = input.value.length;
+      });
+    });
+  }
+
+  function updateMessagePreview(input) {
+    const target = messagePreviewMap.get(input);
+    if (!target) {
+      return;
+    }
+    target.innerHTML = renderMiniMessage(input.value || '');
+  }
+
+  function updateAllMessagePreviews() {
+    messagePreviewMap.forEach((_, input) => {
+      updateMessagePreview(input);
+    });
+  }
+
+  function updateOverridePreview(input) {
+    const entry = overridePreviewMap.get(input);
+    if (!entry) {
+      return;
+    }
+    const value = input.value.trim();
+    const fallbackValue = entry.fallbackInput ? entry.fallbackInput.value.trim() : '';
+    const useFallback = !value && !!fallbackValue;
+    const message = useFallback ? fallbackValue : input.value;
+    entry.body.innerHTML = renderMiniMessage(message || '');
+    entry.preview.classList.toggle('is-fallback', useFallback);
+    if (entry.label) {
+      entry.label.textContent = useFallback ? 'Global config' : 'Preview';
+    }
+  }
+
+  function updateOverridePreviewsForFallback(fallbackInput) {
+    overridePreviewMap.forEach((entry, input) => {
+      if (entry.fallbackInput === fallbackInput) {
+        updateOverridePreview(input);
+      }
+    });
+  }
+
+  function updateAllOverridePreviews() {
+    overridePreviewMap.forEach((_, input) => updateOverridePreview(input));
+  }
+
+  function bindInlineMessagePreview(input, preview, fallbackInput) {
+    if (!input || !preview) {
+      return;
+    }
+    const body = preview.querySelector('.cb-message-preview-body');
+    const label = preview.querySelector('.cb-message-preview-label');
+    if (!body) {
+      return;
+    }
+    overridePreviewMap.set(input, { preview, body, label, fallbackInput });
+    const render = () => updateOverridePreview(input);
+    preview.addEventListener('click', () => {
+      input.focus();
+      input.selectionStart = input.value.length;
+      input.selectionEnd = input.value.length;
+    });
+    input.addEventListener('input', render);
+    if (fallbackInput && !fallbackBound.has(fallbackInput)) {
+      fallbackBound.add(fallbackInput);
+      fallbackInput.addEventListener('input', () => updateOverridePreviewsForFallback(fallbackInput));
+    }
+    render();
+  }
+
+  function parseForcedHostEntries(value) {
+    return value
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split(/\s*(?:=|->|=>)\s*/);
+        if (parts.length >= 2) {
+          const host = parts.shift() || '';
+          const server = parts.join(' ').trim();
+          return { host: host.trim(), server };
+        }
+        const fallback = line.split(/\s+/);
+        const host = fallback.shift() || '';
+        const server = fallback.join(' ').trim();
+        return { host: host.trim(), server };
+      })
+      .filter((entry) => entry.host && entry.server);
+  }
+
+  function normalizeForcedHostEntries(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => {
+          if (!entry || typeof entry !== 'object') {
+            return null;
+          }
+          const host = typeof entry.host === 'string' ? entry.host.trim() : '';
+          const server = typeof entry.server === 'string' ? entry.server.trim() : '';
+          return { host, server };
+        })
+        .filter((entry) => entry && (entry.host || entry.server));
+    }
+    if (value && typeof value === 'object') {
+      return Object.entries(value)
+        .map(([host, server]) => ({
+          host: String(host || '').trim(),
+          server: String(server || '').trim()
+        }))
+        .filter((entry) => entry.host || entry.server);
+    }
+    return [];
+  }
+
   function listToText(list) {
     return Array.isArray(list) ? list.join(', ') : '';
   }
@@ -2667,7 +3878,388 @@ onMounted(() => {
     return Array.isArray(list) ? list.join(' ') : '';
   }
 
+  function hostListToText(list) {
+    return Array.isArray(list) ? list.join(' ') : '';
+  }
+
+  function forcedHostEntriesToText(list) {
+    if (!Array.isArray(list)) {
+      return '';
+    }
+    return list
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return '';
+        }
+        const host = typeof entry.host === 'string' ? entry.host.trim() : '';
+        const server = typeof entry.server === 'string' ? entry.server.trim() : '';
+        if (!host || !server) {
+          return '';
+        }
+        return `${host} = ${server}`;
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  function setForcedHostDrafts(list) {
+    forcedHostDrafts = normalizeForcedHostEntries(list).map((entry) => ({
+      host: entry.host || '',
+      server: entry.server || ''
+    }));
+    if (!forcedHostDrafts.length) {
+      forcedHostDrafts = [{ host: '', server: '' }];
+    }
+  }
+
+  function syncForcedHostsConfig() {
+    config['forced-hosts'] = forcedHostDrafts
+      .map((entry) => ({
+        host: String(entry.host || '').trim(),
+        server: String(entry.server || '').trim()
+      }))
+      .filter((entry) => entry.host && entry.server);
+  }
+
+  function renderForcedHosts() {
+    if (!forcedHostsList) {
+      return;
+    }
+    forcedHostsList.innerHTML = '';
+    forcedHostDrafts.forEach((entry, index) => {
+      const row = document.createElement('div');
+      row.className = 'cb-forced-row';
+      const hostInput = document.createElement('input');
+      hostInput.type = 'text';
+      hostInput.placeholder = 'play.example.com';
+      hostInput.value = entry.host || '';
+      hostInput.setAttribute('aria-label', 'Forced host');
+      const serverInput = document.createElement('input');
+      serverInput.type = 'text';
+      serverInput.placeholder = 'minigame-1';
+      serverInput.value = entry.server || '';
+      serverInput.setAttribute('aria-label', 'Target server');
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'cb-btn cb-btn-ghost cb-icon-btn';
+      removeBtn.setAttribute('aria-label', 'Remove mapping');
+      removeBtn.title = 'Remove mapping';
+      removeBtn.innerHTML = `
+        <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M9 7V5h6v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      `;
+      hostInput.addEventListener('input', () => {
+        forcedHostDrafts[index].host = hostInput.value;
+        syncForcedHostsConfig();
+        commitChange();
+      });
+      serverInput.addEventListener('input', () => {
+        forcedHostDrafts[index].server = serverInput.value;
+        syncForcedHostsConfig();
+        commitChange();
+      });
+      removeBtn.addEventListener('click', () => {
+        forcedHostDrafts.splice(index, 1);
+        if (!forcedHostDrafts.length) {
+          forcedHostDrafts = [{ host: '', server: '' }];
+        }
+        syncForcedHostsConfig();
+        renderForcedHosts();
+        commitChange();
+      });
+      row.appendChild(hostInput);
+      row.appendChild(serverInput);
+      row.appendChild(removeBtn);
+      forcedHostsList.appendChild(row);
+    });
+  }
+
+  function normalizeI18nOverrides(raw) {
+    const data = raw && typeof raw === 'object' ? raw : {};
+    const out = {};
+    Object.entries(data).forEach(([locale, entries]) => {
+      if (!locale) {
+        return;
+      }
+      const entryMap = entries && typeof entries === 'object' ? entries : {};
+      const normalizedEntries = {};
+      Object.entries(entryMap).forEach(([key, value]) => {
+        if (!key) {
+          return;
+        }
+        normalizedEntries[String(key)] = value == null ? '' : String(value);
+      });
+      out[String(locale)] = normalizedEntries;
+    });
+    return out;
+  }
+
+  function setI18nOverrideDrafts(raw) {
+    const normalized = normalizeI18nOverrides(raw);
+    const locales = Object.keys(normalized);
+    i18nOverrideDrafts = locales.map((locale) => ({
+      locale,
+      entries: Object.entries(normalized[locale] || {}).map(([key, value]) => ({
+        key,
+        value
+      }))
+    }));
+    if (!i18nOverrideDrafts.length && fallbackI18nLocales.length) {
+      i18nOverrideDrafts = fallbackI18nLocales.map((locale) => ({
+        locale,
+        entries: []
+      }));
+    }
+  }
+
+  function syncI18nOverridesConfig() {
+    config.i18n = config.i18n || {};
+    const overrides = {};
+    i18nOverrideDrafts.forEach((localeEntry) => {
+      const locale = String(localeEntry.locale || '').trim();
+      if (!locale) {
+        return;
+      }
+      const entries = {};
+      (localeEntry.entries || []).forEach((entry) => {
+        const key = String(entry.key || '').trim();
+        if (!key) {
+          return;
+        }
+        entries[key] = entry.value == null ? '' : String(entry.value);
+      });
+      overrides[locale] = entries;
+    });
+    config.i18n.overrides = overrides;
+  }
+
+  function nextI18nLocaleName() {
+    const base = 'custom';
+    const existing = new Set(
+      i18nOverrideDrafts.map((entry) => String(entry.locale || '').trim()).filter(Boolean)
+    );
+    let candidate = base;
+    let i = 1;
+    while (existing.has(candidate)) {
+      candidate = `${base}_${i}`;
+      i += 1;
+    }
+    return candidate;
+  }
+
+  function nextI18nKey(entries) {
+    const base = 'example.key';
+    const existing = new Set((entries || []).map((entry) => String(entry.key || '').trim()).filter(Boolean));
+    let candidate = base;
+    let i = 1;
+    while (existing.has(candidate)) {
+      candidate = `${base}.${i}`;
+      i += 1;
+    }
+    return candidate;
+  }
+
+  function renderI18nOverrides() {
+    if (!i18nOverridesList) {
+      return;
+    }
+    i18nOverridesList.innerHTML = '';
+    if (!i18nOverrideDrafts.length) {
+      const empty = document.createElement('div');
+      empty.className = 'cb-empty';
+      empty.textContent = 'No overrides yet.';
+      i18nOverridesList.appendChild(empty);
+      return;
+    }
+    i18nOverrideDrafts.forEach((localeEntry, localeIndex) => {
+      const localeCard = document.createElement('div');
+      localeCard.className = 'cb-i18n-locale';
+      const head = document.createElement('div');
+      head.className = 'cb-i18n-locale-head';
+      const localeInput = document.createElement('input');
+      localeInput.type = 'text';
+      localeInput.placeholder = 'en_us';
+      localeInput.value = localeEntry.locale || '';
+      localeInput.setAttribute('aria-label', 'Locale');
+      const removeLocaleBtn = document.createElement('button');
+      removeLocaleBtn.type = 'button';
+      removeLocaleBtn.className = 'cb-btn cb-btn-ghost cb-icon-btn';
+      removeLocaleBtn.setAttribute('aria-label', 'Remove locale');
+      removeLocaleBtn.title = 'Remove locale';
+      removeLocaleBtn.innerHTML = `
+        <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M9 7V5h6v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      `;
+      localeInput.addEventListener('input', () => {
+        i18nOverrideDrafts[localeIndex].locale = localeInput.value;
+        syncI18nOverridesConfig();
+        commitChange();
+      });
+      removeLocaleBtn.addEventListener('click', () => {
+        i18nOverrideDrafts.splice(localeIndex, 1);
+        syncI18nOverridesConfig();
+        renderI18nOverrides();
+        commitChange();
+      });
+      head.appendChild(localeInput);
+      head.appendChild(removeLocaleBtn);
+      localeCard.appendChild(head);
+
+      const entriesList = document.createElement('div');
+      entriesList.className = 'cb-i18n-entries';
+      const entries = localeEntry.entries || [];
+      if (!entries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'cb-empty';
+        empty.textContent = 'No overrides for this locale.';
+        entriesList.appendChild(empty);
+      } else {
+        entries.forEach((entry, entryIndex) => {
+          const row = document.createElement('div');
+          row.className = 'cb-i18n-row';
+          const keyInput = document.createElement('input');
+          keyInput.type = 'text';
+          keyInput.placeholder = 'lobby.jump.started';
+          keyInput.value = entry.key || '';
+          keyInput.setAttribute('aria-label', 'Translation key');
+          const valueInput = document.createElement('input');
+          valueInput.type = 'text';
+          valueInput.placeholder = '<green>Jump run started!</green>';
+          valueInput.value = entry.value || '';
+          valueInput.setAttribute('aria-label', 'Translation value');
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'cb-btn cb-btn-ghost cb-icon-btn';
+          removeBtn.setAttribute('aria-label', 'Remove override');
+          removeBtn.title = 'Remove override';
+          removeBtn.innerHTML = `
+            <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M9 7V5h6v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          `;
+          keyInput.addEventListener('input', () => {
+            i18nOverrideDrafts[localeIndex].entries[entryIndex].key = keyInput.value;
+            syncI18nOverridesConfig();
+            commitChange();
+          });
+          valueInput.addEventListener('input', () => {
+            i18nOverrideDrafts[localeIndex].entries[entryIndex].value = valueInput.value;
+            syncI18nOverridesConfig();
+            commitChange();
+          });
+          removeBtn.addEventListener('click', () => {
+            i18nOverrideDrafts[localeIndex].entries.splice(entryIndex, 1);
+            syncI18nOverridesConfig();
+            renderI18nOverrides();
+            commitChange();
+          });
+          row.appendChild(keyInput);
+          row.appendChild(valueInput);
+          row.appendChild(removeBtn);
+          entriesList.appendChild(row);
+        });
+      }
+      localeCard.appendChild(entriesList);
+
+      const localeActions = document.createElement('div');
+      localeActions.className = 'cb-i18n-locale-actions';
+      const addEntryBtn = document.createElement('button');
+      addEntryBtn.type = 'button';
+      addEntryBtn.className = 'cb-btn cb-btn-ghost cb-mini-btn';
+      addEntryBtn.textContent = 'Add entry';
+      addEntryBtn.addEventListener('click', () => {
+        const entryList = i18nOverrideDrafts[localeIndex].entries;
+        entryList.push({ key: nextI18nKey(entryList), value: '' });
+        syncI18nOverridesConfig();
+        renderI18nOverrides();
+        commitChange();
+      });
+      localeActions.appendChild(addEntryBtn);
+      localeCard.appendChild(localeActions);
+
+      i18nOverridesList.appendChild(localeCard);
+    });
+  }
+
+  function applyI18nToForm() {
+    config.i18n = config.i18n && typeof config.i18n === 'object' ? config.i18n : {};
+    if (inputs.i18nDefaultLocale) {
+      inputs.i18nDefaultLocale.value = config.i18n['default-locale'] || 'en_us';
+    }
+    if (inputs.i18nUseClient) {
+      inputs.i18nUseClient.checked = config.i18n['use-client-locale'] !== false;
+    }
+    setI18nOverrideDrafts(config.i18n.overrides);
+    renderI18nOverrides();
+  }
+
+  function applyLobbyConfigToForm() {
+    if (lobbyInputs.compassEnabled) {
+      lobbyInputs.compassEnabled.checked = Boolean(config.compass?.enabled);
+    }
+    if (lobbyInputs.compassTitle) {
+      lobbyInputs.compassTitle.value = config.compass?.['gui-title'] || '';
+    }
+    if (lobbyInputs.navigatorEnabled) {
+      lobbyInputs.navigatorEnabled.checked = Boolean(config.navigator?.enabled);
+    }
+    if (lobbyInputs.navigatorTitle) {
+      lobbyInputs.navigatorTitle.value = config.navigator?.['gui-title'] || '';
+    }
+    if (lobbyInputs.spawnTeleportEnabled) {
+      lobbyInputs.spawnTeleportEnabled.checked = Boolean(config['spawn-teleport']?.enabled);
+    }
+    if (lobbyInputs.joinTeleportMode) {
+      lobbyInputs.joinTeleportMode.value = config['join-teleport']?.mode || 'none';
+    }
+    if (lobbyInputs.joinTeleportDelay) {
+      const delayValue = config['join-teleport']?.['delay-seconds'];
+      lobbyInputs.joinTeleportDelay.value = Number.isFinite(Number(delayValue)) ? String(delayValue) : '0';
+    }
+    if (lobbyInputs.joinTeleportMaxAge) {
+      const maxAgeValue = config['join-teleport']?.['last-location']?.['max-age-seconds'];
+      lobbyInputs.joinTeleportMaxAge.value = Number.isFinite(Number(maxAgeValue)) ? String(maxAgeValue) : '0';
+    }
+    if (lobbyInputs.npcEnabled) {
+      lobbyInputs.npcEnabled.checked = Boolean(config['lobby-npcs']?.enabled);
+    }
+    if (lobbyInputs.signEnabled) {
+      lobbyInputs.signEnabled.checked = Boolean(config['lobby-signs']?.enabled);
+    }
+    if (lobbyInputs.gameplayDamage) {
+      lobbyInputs.gameplayDamage.checked = Boolean(config.gameplay?.['disable-damage']);
+    }
+    if (lobbyInputs.gameplayHunger) {
+      lobbyInputs.gameplayHunger.checked = Boolean(config.gameplay?.['disable-hunger']);
+    }
+    if (lobbyInputs.gameplayHeal) {
+      lobbyInputs.gameplayHeal.checked = Boolean(config.gameplay?.['heal-on-join']);
+    }
+    if (lobbyInputs.bstatsEnabled) {
+      lobbyInputs.bstatsEnabled.checked = Boolean(config.bstats?.enabled);
+    }
+    if (lobbyInputs.minestomSecret) {
+      lobbyInputs.minestomSecret.value = config.minestom?.['velocity-secret'] || '';
+    }
+    applyI18nToForm();
+  }
+
   function applyConfigToForm() {
+    if (configMode === 'lobby') {
+      applyLobbyConfigToForm();
+      return;
+    }
     inputs.baseCommand.value = config['base-hub-command'] || '';
     inputs.aliases.value = aliasListToText(config.aliases);
     inputs.hideOn.value = config['hide-hub-command-on-lobby'] || '';
@@ -2676,6 +4268,16 @@ onMounted(() => {
     inputs.lastLobby.checked = Boolean(config['last-lobby']?.enabled);
     inputs.debugEnabled.checked = Boolean(config.debug?.enabled);
     inputs.debugPermission.value = config.debug?.permission || '';
+    setDebugCategoryVisibility(inputs.debugEnabled.checked);
+    const debugCategories = normalizeDebugCategories(config.debug?.categories);
+    config.debug = config.debug || {};
+    config.debug.categories = debugCategories;
+    Object.entries(debugCategoryInputs).forEach(([key, input]) => {
+      if (!input) {
+        return;
+      }
+      input.checked = Boolean(debugCategories[key]);
+    });
     inputs.messageSuccess.value = config.messages?.['success-message'] || '';
     inputs.messageAlready.value = config.messages?.['already-connected-message'] || '';
     inputs.messageProgress.value = config.messages?.['connection-in-progress-message'] || '';
@@ -2690,6 +4292,8 @@ onMounted(() => {
     inputs.finderIncrement.value = config.finder?.['increment-duration'] ?? config.finder?.incrementDuration ?? '';
     inputs.finderMax.value = config.finder?.['max-duration'] ?? config.finder?.maxDuration ?? '';
     inputs.finderRefresh.value = config.finder?.['refresh-interval-in-ticks'] ?? config.finder?.refreshIntervalInTicks ?? '';
+    setForcedHostDrafts(config['forced-hosts']);
+    renderForcedHosts();
     inputs.dataCollectEnabled.checked = Boolean(config['data-collection']?.enabled);
     inputs.dataCollectUuid.checked = Boolean(config['data-collection']?.['include-uuid']);
     inputs.dataCollectFile.value = config['data-collection']?.['dump-file'] || '';
@@ -2698,6 +4302,9 @@ onMounted(() => {
     inputs.dataCollectServers.value = config['data-collection']?.['max-servers'] ?? '';
     updateHideRegexStatus();
     setRegexContext(tabButtons.find((btn) => btn.classList.contains('is-active'))?.dataset.tab);
+    updateAllMessagePreviews();
+    updateAllOverridePreviews();
+    applyI18nToForm();
   }
 
   function updateOutput() {
@@ -2728,12 +4335,22 @@ onMounted(() => {
     updateSummary();
   }
 
-  function applyLoadedConfig(raw, sourceLabel) {
-    config = normalizeConfig(raw);
+  function applyLoadedConfig(raw, sourceLabel, options = {}) {
+    const mode = options.mode || configMode;
+    if (mode !== configMode) {
+      configMode = mode;
+      defaultConfig = configMode === 'lobby' ? defaultConfigLobby : defaultConfigProxy;
+      applyModeUi();
+    }
+    config = normalizeConfig(raw, mode);
     baselineConfig = clone(config);
     applyConfigToForm();
-    renderGroups();
-    renderLobbies();
+    if (mode === 'proxy') {
+      renderGroups();
+      renderLobbies();
+    } else {
+      activeLobby = null;
+    }
     updateOutput();
     setSource(sourceLabel);
     showStatus('Loaded ' + sourceLabel, 'ok');
@@ -2744,8 +4361,12 @@ onMounted(() => {
   function resetToBaseline() {
     config = clone(baselineConfig);
     applyConfigToForm();
-    renderGroups();
-    renderLobbies();
+    if (configMode === 'proxy') {
+      renderGroups();
+      renderLobbies();
+    } else {
+      activeLobby = null;
+    }
     updateOutput();
     showStatus('Reset to ' + (sourceEl.textContent || 'defaults'), 'idle');
     refreshPermissionPills();
@@ -2877,6 +4498,7 @@ onMounted(() => {
   }
 
   function assignLobbyToGroup(lobby, groupName) {
+    const previousGroups = groupsForLobby(lobby.name || '');
     const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
     groups.forEach((group) => {
       const list = Array.isArray(group.lobbies) ? group.lobbies.slice() : [];
@@ -2889,6 +4511,14 @@ onMounted(() => {
     const selectedGroup = groups.find((group) => group.name === groupName);
     lobby.parent = deriveGroupParent(selectedGroup);
     lobby['parent-groups'] = [];
+    const wasGrouped = previousGroups.length > 0;
+    const viaDrag = Boolean(draggingLobby);
+    if (viaDrag && groupName && !wasGrouped) {
+      markTutorialAction('lobbyGrouped');
+    }
+    if (viaDrag && !groupName && wasGrouped) {
+      markTutorialAction('lobbyUngrouped');
+    }
   }
 
   function createGroupFromModal() {
@@ -2902,7 +4532,7 @@ onMounted(() => {
     }
     const groups = config['lobby-groups'];
     const existing = groups.find((group) => (group.name || '').toLowerCase() === raw.toLowerCase());
-    const group = existing || { name: raw, lobbies: [] };
+    const group = existing || { name: raw, lobbies: [], 'forced-hosts': [] };
     if (!existing) {
       groups.push(group);
     }
@@ -2982,6 +4612,10 @@ onMounted(() => {
           <span title="Parent lobby used when /hub is run from a lobby in this group">Parent lobby</span>
           <select data-field="parent"></select>
         </label>
+        <label class="cb-field cb-group-field cb-group-span">
+          <span title="Domains that route directly into this group">Forced hosts</span>
+          <input type="text" data-field="forcedHosts" placeholder="play.example.com minigame.example.com">
+        </label>
         <button type="button" class="cb-btn cb-btn-danger cb-icon-btn cb-group-remove" data-action="remove" aria-label="Remove group" title="Remove group">
           <svg class="cb-trash-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 7h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -2995,6 +4629,7 @@ onMounted(() => {
       const lobbiesInput = card.querySelector('[data-field="lobbies"]');
       const parentGroupSelect = card.querySelector('[data-field="parentGroup"]');
       const parentSelect = card.querySelector('[data-field="parent"]');
+      const forcedHostsInput = card.querySelector('[data-field="forcedHosts"]');
       const removeBtn = card.querySelector('[data-action="remove"]');
       const allLobbies = Array.isArray(config.lobbies) ? config.lobbies : [];
       const allGroups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
@@ -3014,6 +4649,7 @@ onMounted(() => {
       parentSelect.value = deriveGroupParent(group);
       nameInput.value = group.name || '';
       lobbiesInput.value = listToText(group.lobbies);
+      forcedHostsInput.value = hostListToText(group['forced-hosts']);
       enhanceHints(card);
       nameInput.addEventListener('input', () => {
         const previousName = group.name || '';
@@ -3051,6 +4687,13 @@ onMounted(() => {
           });
         }
         commitChange();
+      });
+      forcedHostsInput.addEventListener('input', () => {
+        group['forced-hosts'] = parseHostList(forcedHostsInput.value);
+        commitChange();
+      });
+      forcedHostsInput.addEventListener('blur', () => {
+        forcedHostsInput.value = hostListToText(group['forced-hosts']);
       });
       parentSelect.addEventListener('change', () => {
         const value = parentSelect.value;
@@ -3113,25 +4756,7 @@ onMounted(() => {
     return { key: keys[0], value: lobby.commands[keys[0]] };
   }
 
-  function renderLobbies() {
-    lobbiesEl.innerHTML = '';
-    lobbiesListEl.innerHTML = '';
-    if (activeLobby && !config.lobbies.includes(activeLobby)) {
-      activeLobby = null;
-    }
-    let activeIndex = activeLobby ? config.lobbies.indexOf(activeLobby) : -1;
-
-    if (!config.lobbies.length) {
-      const empty = document.createElement('div');
-      empty.className = 'cb-lobby-empty';
-      empty.textContent = 'No lobbies yet. Add one to start.';
-      lobbiesListEl.appendChild(empty);
-      return;
-    }
-
-    const lobbyIndices = new Map();
-    config.lobbies.forEach((lobby, index) => lobbyIndices.set(lobby, index));
-
+  function buildLobbyStructure() {
     const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
     const getGroupName = (group) => (group && typeof group.name === 'string' ? group.name.trim() : '');
     const groupEntries = groups
@@ -3156,28 +4781,101 @@ onMounted(() => {
     });
     const rootGroups = groupEntries.filter((entry) => !getParentGroup(entry.group));
 
+    const lobbyByName = new Map();
+    config.lobbies.forEach((lobby) => {
+      const name = (lobby && lobby.name ? String(lobby.name) : '').trim();
+      if (name && !lobbyByName.has(name)) {
+        lobbyByName.set(name, lobby);
+      }
+    });
     const lobbyGroupMap = new Map();
     groupEntries.forEach((entry) => {
-      if (!Array.isArray(entry.group.lobbies)) {
-        return;
-      }
-      entry.group.lobbies.forEach((name) => {
-        if (name) {
+      const list = Array.isArray(entry.group.lobbies) ? entry.group.lobbies : [];
+      list.forEach((name) => {
+        if (name && lobbyByName.has(name) && !lobbyGroupMap.has(name)) {
           lobbyGroupMap.set(name, entry.name);
         }
       });
     });
     const lobbyBuckets = new Map();
-    config.lobbies.forEach((lobby) => {
-      const groupName = lobbyGroupMap.get(lobby.name || '') || '';
-      if (!lobbyBuckets.has(groupName)) {
-        lobbyBuckets.set(groupName, []);
-      }
-      lobbyBuckets.get(groupName).push(lobby);
+    groupEntries.forEach((entry) => {
+      const list = Array.isArray(entry.group.lobbies) ? entry.group.lobbies : [];
+      const items = list.map((name) => lobbyByName.get(name)).filter(Boolean);
+      lobbyBuckets.set(entry.name, items);
     });
+    const ungrouped = config.lobbies.filter((lobby) => {
+      const name = (lobby && lobby.name ? String(lobby.name) : '').trim();
+      return name && !lobbyGroupMap.has(name);
+    });
+    lobbyBuckets.set('', ungrouped);
+
+    return {
+      groups,
+      groupEntries,
+      groupByName,
+      getParentGroup,
+      children,
+      rootGroups,
+      lobbyGroupMap,
+      lobbyBuckets
+    };
+  }
+
+  function getLobbyDisplayOrder() {
+    const { lobbyBuckets, children, rootGroups } = buildLobbyStructure();
+    const order = [];
+    const pushGroup = (groupName) => {
+      const items = lobbyBuckets.get(groupName) || [];
+      items.forEach((lobby) => {
+        if (lobby) {
+          order.push(lobby);
+        }
+      });
+    };
+    pushGroup('');
+    const walk = (entry) => {
+      pushGroup(entry.name);
+      const kids = children.get(entry.name) || [];
+      kids.forEach((child) => walk(child));
+    };
+    rootGroups.forEach((entry) => walk(entry));
+    return order;
+  }
+
+  function renderLobbies() {
+    lobbiesEl.innerHTML = '';
+    lobbiesListEl.innerHTML = '';
+    overridePreviewMap.clear();
+    if (activeLobby && !config.lobbies.includes(activeLobby)) {
+      activeLobby = null;
+    }
+    let activeIndex = activeLobby ? config.lobbies.indexOf(activeLobby) : -1;
+
+    if (!config.lobbies.length) {
+      const empty = document.createElement('div');
+      empty.className = 'cb-lobby-empty';
+      empty.textContent = 'No lobbies yet. Add one to start.';
+      lobbiesListEl.appendChild(empty);
+      return;
+    }
+
+    const lobbyIndices = new Map();
+    config.lobbies.forEach((lobby, index) => lobbyIndices.set(lobby, index));
+
+    const {
+      groupEntries,
+      groupByName,
+      children,
+      rootGroups,
+      lobbyGroupMap,
+      lobbyBuckets
+    } = buildLobbyStructure();
 
     const clearDropTargets = () => {
       lobbiesListEl.querySelectorAll('.cb-lobby-group.is-drop-target').forEach((el) => {
+        el.classList.remove('is-drop-target');
+      });
+      lobbiesListEl.querySelectorAll('.cb-lobby-item.is-drop-target').forEach((el) => {
         el.classList.remove('is-drop-target');
       });
     };
@@ -3204,19 +4902,93 @@ onMounted(() => {
       return false;
     };
 
+    const reorderNameList = (list, lobbyName, beforeName) => {
+      const next = list.filter((name) => name && name !== lobbyName);
+      if (lobbyName) {
+        if (beforeName && beforeName !== lobbyName) {
+          const index = next.indexOf(beforeName);
+          if (index >= 0) {
+            next.splice(index, 0, lobbyName);
+          } else {
+            next.push(lobbyName);
+          }
+        } else {
+          next.push(lobbyName);
+        }
+      }
+      return next;
+    };
+
+    const reorderGroupLobbies = (groupName, lobbyName, beforeName) => {
+      const group = groupByName.get(groupName);
+      if (!group) {
+        return;
+      }
+      const list = Array.isArray(group.lobbies) ? group.lobbies : [];
+      group.lobbies = reorderNameList(list, lobbyName, beforeName);
+    };
+
+    const reorderUngroupedLobbies = (lobbyName, beforeName) => {
+      const currentGroupMap = new Map();
+      const groups = Array.isArray(config['lobby-groups']) ? config['lobby-groups'] : [];
+      groups.forEach((group) => {
+        if (!Array.isArray(group.lobbies)) {
+          return;
+        }
+        group.lobbies.forEach((name) => {
+          if (name) {
+            currentGroupMap.set(name, group.name || '');
+          }
+        });
+      });
+      const ungrouped = config.lobbies.filter((lobby) => {
+        const name = (lobby && lobby.name ? String(lobby.name) : '').trim();
+        return name && !currentGroupMap.has(name);
+      });
+      const names = ungrouped.map((lobby) => lobby.name).filter(Boolean);
+      const nextNames = reorderNameList(names, lobbyName, beforeName);
+      const lobbyByName = new Map(config.lobbies.map((lobby) => [lobby.name, lobby]));
+      const nextUngrouped = nextNames.map((name) => lobbyByName.get(name)).filter(Boolean);
+      let nextIndex = 0;
+      config.lobbies = config.lobbies.map((lobby) => {
+        const name = (lobby && lobby.name ? String(lobby.name) : '').trim();
+        if (name && !currentGroupMap.has(name)) {
+          const replacement = nextUngrouped[nextIndex];
+          nextIndex += 1;
+          return replacement || lobby;
+        }
+        return lobby;
+      });
+    };
+
     const createLobbyListItem = (lobby) => {
       const index = lobbyIndices.get(lobby) ?? 0;
+      const lobbyName = (lobby && lobby.name ? String(lobby.name) : '').trim();
+      const groupName = lobbyGroupMap.get(lobbyName) || '';
       const listItem = document.createElement('button');
       listItem.type = 'button';
       listItem.className = 'cb-lobby-item';
+      listItem.dataset.lobby = lobbyName;
+      listItem.dataset.group = groupName;
       if (lobby === activeLobby) {
         listItem.classList.add('is-active');
       }
-      const name = lobby.name ? lobby.name : `Lobby ${index + 1}`;
+      const name = lobbyName || `Lobby ${index + 1}`;
       const priority = Number.isFinite(Number(lobby.priority)) ? Number(lobby.priority) : 0;
+      const autojoin = Boolean(lobby.autojoin);
+      const autojoinIcon = autojoin
+        ? `
+            <span class="cb-lobby-item-autojoin" title="Autojoin enabled" aria-label="Autojoin enabled">A</span>
+          `
+        : '';
       listItem.innerHTML = `
-        <span class="cb-lobby-item-name">${name}</span>
-        <span class="cb-lobby-item-meta">prio ${priority}</span>
+        <div class="cb-lobby-item-row">
+          <span class="cb-lobby-item-name">${name}</span>
+          <div class="cb-lobby-item-meta">
+            <span class="cb-lobby-item-priority">prio ${priority}</span>
+            ${autojoinIcon}
+          </div>
+        </div>
       `;
       listItem.draggable = true;
       listItem.addEventListener('click', () => {
@@ -3238,6 +5010,7 @@ onMounted(() => {
         draggingLobby = null;
         clearDropTargets();
       });
+      attachItemDropHandlers(listItem, lobby);
       return listItem;
     };
 
@@ -3250,6 +5023,81 @@ onMounted(() => {
         return config.lobbies.find((lobby) => lobby.name === name) || null;
       }
       return null;
+    };
+
+    const moveLobby = (lobby, targetGroup, beforeName) => {
+      if (!lobby) {
+        return;
+      }
+      const lobbyName = (lobby && lobby.name ? String(lobby.name) : '').trim();
+      if (!lobbyName) {
+        return;
+      }
+      const currentGroup = lobbyGroupMap.get(lobbyName) || '';
+      if (currentGroup === targetGroup) {
+        if (targetGroup) {
+          reorderGroupLobbies(targetGroup, lobbyName, beforeName);
+        } else {
+          reorderUngroupedLobbies(lobbyName, beforeName);
+        }
+      } else {
+        assignLobbyToGroup(lobby, targetGroup);
+        if (targetGroup) {
+          reorderGroupLobbies(targetGroup, lobbyName, beforeName);
+        } else {
+          reorderUngroupedLobbies(lobbyName, beforeName);
+        }
+      }
+      activeLobby = lobby;
+      renderGroups(false);
+      renderLobbies();
+      commitChange();
+    };
+
+    const attachItemDropHandlers = (item, targetLobby) => {
+      item.addEventListener('dragenter', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        event.stopPropagation();
+        event.preventDefault();
+        item.classList.add('is-drop-target');
+      });
+      item.addEventListener('dragover', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        event.stopPropagation();
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = 'move';
+        }
+        item.classList.add('is-drop-target');
+      });
+      item.addEventListener('dragleave', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        event.stopPropagation();
+        if (!item.contains(event.relatedTarget)) {
+          item.classList.remove('is-drop-target');
+        }
+      });
+      item.addEventListener('drop', (event) => {
+        if (draggingGroup) {
+          return;
+        }
+        event.stopPropagation();
+        event.preventDefault();
+        item.classList.remove('is-drop-target');
+        const lobby = resolveDraggedLobby(event);
+        if (!lobby || lobby === targetLobby) {
+          return;
+        }
+        const targetName = (targetLobby && targetLobby.name ? String(targetLobby.name) : '').trim();
+        const targetGroup = lobbyGroupMap.get(targetName) || '';
+        moveLobby(lobby, targetGroup, targetName);
+      });
     };
 
     const attachDropHandlers = (target, groupName) => {
@@ -3288,11 +5136,7 @@ onMounted(() => {
         if (!lobby) {
           return;
         }
-        assignLobbyToGroup(lobby, groupName);
-        activeLobby = lobby;
-        renderGroups(false);
-        renderLobbies();
-        commitChange();
+        moveLobby(lobby, groupName, '');
       });
     };
 
@@ -3466,7 +5310,7 @@ onMounted(() => {
               <span title="Internal lobby name">Name</span>
               <input type="text" data-field="name">
             </label>
-            <label class="cb-field">
+            <label class="cb-field" data-tutorial="lobbies" data-tutorial-anchor="lobbies">
               <span title="Regex that matches server names for this lobby">Filter regex</span>
               <input type="text" data-field="filter">
             </label>
@@ -3475,10 +5319,16 @@ onMounted(() => {
               <input type="text" data-field="permission">
             </label>
             <label class="cb-field">
-              <span title="Higher priority lobbies are preferred">Priority</span>
+              <span title="Higher numbers are picked first">Priority</span>
               <input type="number" data-field="priority" min="-10" max="100" step="1">
+              <small>Higher numbers are picked first.</small>
             </label>
-            <label class="cb-field">
+            <label class="cb-field cb-span-2">
+              <span title="Domains that force this lobby on join">Forced hosts</span>
+              <input type="text" data-field="forcedHosts" placeholder="play.example.com minigame.example.com">
+              <small>Separate with spaces.</small>
+            </label>
+            <label class="cb-field cb-field-toggle">
               <span title="Allow autojoin to this lobby">Autojoin flag</span>
               <input type="checkbox" data-field="autojoin">
             </label>
@@ -3508,25 +5358,45 @@ onMounted(() => {
         </div>
         <div class="cb-subtab-panel" data-subtab-panel="messages">
           <div class="cb-grid-2 cb-details-grid">
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Override for success message (this lobby only)">Success message</span>
               <textarea rows="2" data-field="ovSuccess"></textarea>
+              <div class="cb-message-preview" data-preview-field="ovSuccess">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Override for already connected message">Already connected message</span>
               <textarea rows="2" data-field="ovAlready"></textarea>
+              <div class="cb-message-preview" data-preview-field="ovAlready">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Override for connection in progress message">Connection in progress message</span>
               <textarea rows="2" data-field="ovProgress"></textarea>
+              <div class="cb-message-preview" data-preview-field="ovProgress">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Override for server disconnected message">Server disconnected message</span>
               <textarea rows="2" data-field="ovDisconnected"></textarea>
+              <div class="cb-message-preview" data-preview-field="ovDisconnected">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
-            <label class="cb-field cb-span-2">
+            <label class="cb-field cb-span-2 cb-message-field">
               <span title="Override for connection cancelled message">Connection cancelled message</span>
               <textarea rows="2" data-field="ovCancelled"></textarea>
+              <div class="cb-message-preview" data-preview-field="ovCancelled">
+                <span class="cb-message-preview-label">Preview</span>
+                <div class="cb-message-preview-body"></div>
+              </div>
             </label>
           </div>
           <p class="cb-footnote">Leave empty to inherit the global message.</p>
@@ -3544,6 +5414,7 @@ onMounted(() => {
         if (!subtabId) {
           return;
         }
+        lobbySubTab = subtabId;
         subTabs.forEach((button) => {
           const active = button.dataset.subtab === subtabId;
           button.classList.toggle('is-active', active);
@@ -3555,7 +5426,9 @@ onMounted(() => {
       };
 
       if (subTabs.length && subPanels.length) {
-        setSubTab(subTabs[0].dataset.subtab);
+        const available = subTabs.map((button) => button.dataset.subtab).filter(Boolean);
+        const initial = available.includes(lobbySubTab) ? lobbySubTab : available[0];
+        setSubTab(initial);
         subTabs.forEach((button) => {
           button.addEventListener('click', () => {
             setSubTab(button.dataset.subtab);
@@ -3568,6 +5441,7 @@ onMounted(() => {
         filter: card.querySelector('[data-field="filter"]'),
         permission: card.querySelector('[data-field="permission"]'),
         priority: card.querySelector('[data-field="priority"]'),
+        forcedHosts: card.querySelector('[data-field="forcedHosts"]'),
         autojoin: card.querySelector('[data-field="autojoin"]'),
         commandName: card.querySelector('[data-field="commandName"]'),
         commandMode: card.querySelector('[data-field="commandMode"]'),
@@ -3581,11 +5455,19 @@ onMounted(() => {
       disconnected: card.querySelector('[data-field="ovDisconnected"]'),
       cancelled: card.querySelector('[data-field="ovCancelled"]')
     };
+    const overridePreviews = {
+      success: card.querySelector('[data-preview-field="ovSuccess"]'),
+      already: card.querySelector('[data-preview-field="ovAlready"]'),
+      progress: card.querySelector('[data-preview-field="ovProgress"]'),
+      disconnected: card.querySelector('[data-preview-field="ovDisconnected"]'),
+      cancelled: card.querySelector('[data-preview-field="ovCancelled"]')
+    };
 
       fields.name.value = lobby.name || '';
       fields.filter.value = lobby.filter || '';
       fields.permission.value = lobby.permission || '';
       fields.priority.value = Number.isFinite(Number(lobby.priority)) ? lobby.priority : 0;
+      fields.forcedHosts.value = hostListToText(lobby['forced-hosts']);
       fields.autojoin.checked = Boolean(lobby.autojoin);
 
     const primaryCommand = getPrimaryCommand(lobby);
@@ -3622,6 +5504,18 @@ onMounted(() => {
     overrideFields.progress.value = overwrite['connection-in-progress-message'] ?? '';
     overrideFields.disconnected.value = overwrite['server-disconnected-message'] ?? '';
     overrideFields.cancelled.value = overwrite['connection-cancelled-message'] ?? '';
+    const globalMessages = {
+      success: document.getElementById('cb-message-success'),
+      already: document.getElementById('cb-message-already'),
+      progress: document.getElementById('cb-message-progress'),
+      disconnected: document.getElementById('cb-message-disconnected'),
+      cancelled: document.getElementById('cb-message-cancelled')
+    };
+    bindInlineMessagePreview(overrideFields.success, overridePreviews.success, globalMessages.success);
+    bindInlineMessagePreview(overrideFields.already, overridePreviews.already, globalMessages.already);
+    bindInlineMessagePreview(overrideFields.progress, overridePreviews.progress, globalMessages.progress);
+    bindInlineMessagePreview(overrideFields.disconnected, overridePreviews.disconnected, globalMessages.disconnected);
+    bindInlineMessagePreview(overrideFields.cancelled, overridePreviews.cancelled, globalMessages.cancelled);
 
       fields.name.addEventListener('input', () => {
         const previousName = lobby.name || '';
@@ -3650,6 +5544,7 @@ onMounted(() => {
         if (activeLobby === lobby) {
           syncRegexLabWithLobby(lobby, { keepTest: true });
         }
+        markTutorialAction('lobbyFilterEdited');
         commitChange();
       });
 
@@ -3663,6 +5558,15 @@ onMounted(() => {
         const value = Number.parseInt(fields.priority.value, 10);
         lobby.priority = Number.isFinite(value) ? value : 0;
         commitChange();
+      });
+
+      fields.forcedHosts.addEventListener('input', () => {
+        lobby['forced-hosts'] = parseHostList(fields.forcedHosts.value);
+        commitChange();
+      });
+
+      fields.forcedHosts.addEventListener('blur', () => {
+        fields.forcedHosts.value = hostListToText(lobby['forced-hosts']);
       });
 
       fields.autojoin.addEventListener('change', () => {
@@ -3794,6 +5698,12 @@ onMounted(() => {
 
       lobbiesEl.appendChild(card);
     refreshPermissionPills();
+    if (tutorialEl && !tutorialState.dismissed && !tutorialState.completed) {
+      const step = tutorialSteps[tutorialState.stepIndex || 0];
+      const stepId = step ? step.id : '';
+      updateTutorialHighlights(stepId);
+      scheduleTutorialPosition(stepId);
+    }
   }
 
   function addGroup() {
@@ -3810,6 +5720,7 @@ onMounted(() => {
       priority: 0,
       parent: '',
       'parent-groups': [],
+      'forced-hosts': [],
       commands: {
         [name]: { standalone: true, subcommand: true, 'hide-on': '^(?!.*).$' }
       },
@@ -3827,12 +5738,19 @@ onMounted(() => {
       showStatus('Failed to load YAML parser. Check your connection.', 'bad');
       return;
     }
-    const defaultYaml = document.getElementById('cb-default-yaml')?.value?.trim() || '';
-    defaultConfig = defaultYaml ? yamlLib.load(defaultYaml) : {};
-    applyLoadedConfig(defaultConfig, 'defaults');
+    const defaultYamlProxy = document.getElementById('cb-default-yaml')?.value?.trim() || '';
+    const defaultYamlLobby = document.getElementById('cb-default-yaml-lobby')?.value?.trim() || '';
+    defaultConfigProxy = defaultYamlProxy ? yamlLib.load(defaultYamlProxy) : {};
+    defaultConfigLobby = defaultYamlLobby ? yamlLib.load(defaultYamlLobby) : {};
+    defaultConfig = defaultConfigProxy;
+    setConfigMode('proxy', { loadDefaults: true, force: true });
 
-    defaultsBtn.addEventListener('click', () => applyLoadedConfig(defaultConfig, 'defaults'));
+    defaultsBtn.addEventListener('click', () => applyLoadedConfig(defaultConfig, 'defaults', { mode: configMode }));
     resetBtn.addEventListener('click', () => resetToBaseline());
+    modeToggle.addEventListener('change', () => {
+      const nextMode = modeToggle.checked ? 'proxy' : 'lobby';
+      setConfigMode(nextMode, { loadDefaults: true, force: true });
+    });
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files && fileInput.files[0];
     if (!file) {
@@ -3841,7 +5759,11 @@ onMounted(() => {
       try {
         const text = await file.text();
         const parsed = yamlLib.load(text);
-        applyLoadedConfig(parsed, file.name);
+        const detected = detectConfigMode(parsed);
+        if (detected) {
+          setConfigMode(detected, { force: true });
+        }
+        applyLoadedConfig(parsed, file.name, { mode: detected || configMode });
       } catch (error) {
       showStatus('Failed to parse YAML: ' + error.message, 'bad');
     }
@@ -3886,7 +5808,11 @@ onMounted(() => {
       }
       try {
         const parsed = yamlLib.load(text);
-        applyLoadedConfig(parsed, 'pasted');
+        const detected = detectConfigMode(parsed);
+        if (detected) {
+          setConfigMode(detected, { force: true });
+        }
+        applyLoadedConfig(parsed, 'pasted', { mode: detected || configMode });
       } catch (error) {
         showStatus('Failed to parse YAML: ' + error.message, 'bad');
       }
@@ -3938,17 +5864,70 @@ onMounted(() => {
     }
   });
 
+  if (tutorialStart && tutorialEl) {
+    tutorialStart.addEventListener('click', () => {
+      resetTutorialState();
+      setTutorialStep(0);
+    });
+  }
+  if (tutorialClose) {
+    tutorialClose.addEventListener('click', () => {
+      tutorialState.dismissed = true;
+      saveTutorialState();
+      renderTutorial();
+    });
+  }
+  if (tutorialPrev) {
+    tutorialPrev.addEventListener('click', () => {
+      setTutorialStep((tutorialState.stepIndex || 0) - 1);
+    });
+  }
+  if (tutorialNext) {
+    tutorialNext.addEventListener('click', () => {
+      const stepIndex = tutorialState.stepIndex || 0;
+      const step = tutorialSteps[stepIndex];
+      if (!step) {
+        return;
+      }
+      if (stepIndex >= tutorialSteps.length - 1) {
+        tutorialState.completed = true;
+        saveTutorialState();
+        renderTutorial();
+        return;
+      }
+      setTutorialStep(stepIndex + 1);
+    });
+  }
+
+  const handleTutorialReposition = () => {
+    if (!tutorialEl || tutorialEl.hidden || tutorialState.dismissed || tutorialState.completed) {
+      return;
+    }
+    const step = tutorialSteps[tutorialState.stepIndex || 0];
+    scheduleTutorialPosition(step ? step.id : '');
+  };
+  window.addEventListener('resize', handleTutorialReposition);
+  window.addEventListener('scroll', handleTutorialReposition, { passive: true });
+
     inputs.baseCommand.addEventListener('input', () => {
       config['base-hub-command'] = inputs.baseCommand.value.trim();
+      markTutorialAction('coreEdited');
       commitChange();
     });
     inputs.aliases.addEventListener('input', () => {
       config.aliases = parseAliasList(inputs.aliases.value);
+      markTutorialAction('coreEdited');
       commitChange();
     });
     inputs.aliases.addEventListener('blur', () => {
       inputs.aliases.value = aliasListToText(config.aliases);
     });
+    if (forcedHostsAdd) {
+      forcedHostsAdd.addEventListener('click', () => {
+        forcedHostDrafts.push({ host: '', server: '' });
+        renderForcedHosts();
+      });
+    }
     inputs.hideOn.addEventListener('input', () => {
       config['hide-hub-command-on-lobby'] = inputs.hideOn.value;
       updateHideRegexStatus();
@@ -3972,6 +5951,7 @@ onMounted(() => {
     inputs.debugEnabled.addEventListener('change', () => {
       config.debug = config.debug || {};
       config.debug.enabled = inputs.debugEnabled.checked;
+      setDebugCategoryVisibility(inputs.debugEnabled.checked);
       commitChange();
     });
     inputs.debugPermission.addEventListener('input', () => {
@@ -3979,114 +5959,291 @@ onMounted(() => {
       config.debug.permission = inputs.debugPermission.value;
       commitChange();
     });
+    Object.entries(debugCategoryInputs).forEach(([key, input]) => {
+      if (!input) {
+        return;
+      }
+      input.addEventListener('change', () => {
+        config.debug = config.debug || {};
+        config.debug.categories = normalizeDebugCategories(config.debug.categories);
+        config.debug.categories[key] = input.checked;
+        commitChange();
+      });
+    });
     inputs.messageSuccess.addEventListener('input', () => {
       config.messages = config.messages || {};
       config.messages['success-message'] = inputs.messageSuccess.value;
+      markTutorialAction('messagesEdited');
+      updateMessagePreview(inputs.messageSuccess);
       commitChange();
     });
     inputs.messageAlready.addEventListener('input', () => {
       config.messages = config.messages || {};
       config.messages['already-connected-message'] = inputs.messageAlready.value;
+      markTutorialAction('messagesEdited');
+      updateMessagePreview(inputs.messageAlready);
       commitChange();
     });
     inputs.messageProgress.addEventListener('input', () => {
       config.messages = config.messages || {};
       config.messages['connection-in-progress-message'] = inputs.messageProgress.value;
+      markTutorialAction('messagesEdited');
+      updateMessagePreview(inputs.messageProgress);
       commitChange();
     });
     inputs.messageDisconnected.addEventListener('input', () => {
       config.messages = config.messages || {};
       config.messages['server-disconnected-message'] = inputs.messageDisconnected.value;
+      markTutorialAction('messagesEdited');
+      updateMessagePreview(inputs.messageDisconnected);
       commitChange();
     });
     inputs.messageCancelled.addEventListener('input', () => {
       config.messages = config.messages || {};
       config.messages['connection-cancelled-message'] = inputs.messageCancelled.value;
+      markTutorialAction('messagesEdited');
+      updateMessagePreview(inputs.messageCancelled);
       commitChange();
     });
     inputs.systemPlayersOnly.addEventListener('input', () => {
       config['system-messages'] = config['system-messages'] || {};
       config['system-messages']['players-only-command-message'] = inputs.systemPlayersOnly.value;
+      markTutorialAction('messagesEdited');
+      updateMessagePreview(inputs.systemPlayersOnly);
       commitChange();
     });
     inputs.systemNoLobby.addEventListener('input', () => {
       config['system-messages'] = config['system-messages'] || {};
       config['system-messages']['no-lobby-found-message'] = inputs.systemNoLobby.value;
+      markTutorialAction('messagesEdited');
+      updateMessagePreview(inputs.systemNoLobby);
       commitChange();
     });
     inputs.kickEnabled.addEventListener('change', () => {
       config['kick-message'] = config['kick-message'] || {};
       config['kick-message'].enabled = inputs.kickEnabled.checked;
+      markTutorialAction('messagesEdited');
       commitChange();
     });
     inputs.kickPrefix.addEventListener('input', () => {
       config['kick-message'] = config['kick-message'] || {};
       config['kick-message'].prefix = inputs.kickPrefix.value;
+      markTutorialAction('messagesEdited');
       commitChange();
     });
     inputs.kickSuffix.addEventListener('input', () => {
       config['kick-message'] = config['kick-message'] || {};
       config['kick-message'].suffix = inputs.kickSuffix.value;
+      markTutorialAction('messagesEdited');
       commitChange();
     });
+    if (inputs.i18nDefaultLocale) {
+      inputs.i18nDefaultLocale.addEventListener('input', () => {
+        config.i18n = config.i18n || {};
+        config.i18n['default-locale'] = inputs.i18nDefaultLocale.value.trim() || 'en_us';
+        commitChange();
+      });
+    }
+    if (inputs.i18nUseClient) {
+      inputs.i18nUseClient.addEventListener('change', () => {
+        config.i18n = config.i18n || {};
+        config.i18n['use-client-locale'] = inputs.i18nUseClient.checked;
+        commitChange();
+      });
+    }
+    if (i18nAddLocale) {
+      i18nAddLocale.addEventListener('click', () => {
+        i18nOverrideDrafts.push({ locale: nextI18nLocaleName(), entries: [] });
+        syncI18nOverridesConfig();
+        renderI18nOverrides();
+        commitChange();
+      });
+    }
 
     inputs.finderStart.addEventListener('input', () => {
       config.finder = config.finder || {};
       const value = Number.parseInt(inputs.finderStart.value, 10);
       config.finder['start-duration'] = Number.isFinite(value) ? value : 0;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.finderIncrement.addEventListener('input', () => {
       config.finder = config.finder || {};
       const value = Number.parseInt(inputs.finderIncrement.value, 10);
       config.finder['increment-duration'] = Number.isFinite(value) ? value : 0;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.finderMax.addEventListener('input', () => {
       config.finder = config.finder || {};
       const value = Number.parseInt(inputs.finderMax.value, 10);
       config.finder['max-duration'] = Number.isFinite(value) ? value : 0;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.finderRefresh.addEventListener('input', () => {
       config.finder = config.finder || {};
       const value = Number.parseInt(inputs.finderRefresh.value, 10);
       config.finder['refresh-interval-in-ticks'] = Number.isFinite(value) ? value : 0;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.dataCollectEnabled.addEventListener('change', () => {
       config['data-collection'] = config['data-collection'] || {};
       config['data-collection'].enabled = inputs.dataCollectEnabled.checked;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.dataCollectUuid.addEventListener('change', () => {
       config['data-collection'] = config['data-collection'] || {};
       config['data-collection']['include-uuid'] = inputs.dataCollectUuid.checked;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.dataCollectFile.addEventListener('input', () => {
       config['data-collection'] = config['data-collection'] || {};
       config['data-collection']['dump-file'] = inputs.dataCollectFile.value.trim();
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.dataCollectInterval.addEventListener('input', () => {
       config['data-collection'] = config['data-collection'] || {};
       const value = Number.parseInt(inputs.dataCollectInterval.value, 10);
       config['data-collection']['dump-interval-minutes'] = Number.isFinite(value) ? value : 0;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.dataCollectUsers.addEventListener('input', () => {
       config['data-collection'] = config['data-collection'] || {};
       const value = Number.parseInt(inputs.dataCollectUsers.value, 10);
       config['data-collection']['max-users'] = Number.isFinite(value) ? value : 0;
+      markTutorialAction('finderEdited');
       commitChange();
     });
     inputs.dataCollectServers.addEventListener('input', () => {
       config['data-collection'] = config['data-collection'] || {};
       const value = Number.parseInt(inputs.dataCollectServers.value, 10);
       config['data-collection']['max-servers'] = Number.isFinite(value) ? value : 0;
+      markTutorialAction('finderEdited');
       commitChange();
     });
+
+    if (lobbyInputs.compassEnabled) {
+      lobbyInputs.compassEnabled.addEventListener('change', withLobbyMode(() => {
+        config.compass = config.compass || {};
+        config.compass.enabled = lobbyInputs.compassEnabled.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.compassTitle) {
+      lobbyInputs.compassTitle.addEventListener('input', withLobbyMode(() => {
+        config.compass = config.compass || {};
+        config.compass['gui-title'] = lobbyInputs.compassTitle.value;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.navigatorEnabled) {
+      lobbyInputs.navigatorEnabled.addEventListener('change', withLobbyMode(() => {
+        config.navigator = config.navigator || {};
+        config.navigator.enabled = lobbyInputs.navigatorEnabled.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.navigatorTitle) {
+      lobbyInputs.navigatorTitle.addEventListener('input', withLobbyMode(() => {
+        config.navigator = config.navigator || {};
+        config.navigator['gui-title'] = lobbyInputs.navigatorTitle.value;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.spawnTeleportEnabled) {
+      lobbyInputs.spawnTeleportEnabled.addEventListener('change', withLobbyMode(() => {
+        config['spawn-teleport'] = config['spawn-teleport'] || {};
+        config['spawn-teleport'].enabled = lobbyInputs.spawnTeleportEnabled.checked;
+        if (lobbyInputs.joinTeleportMode && lobbyInputs.spawnTeleportEnabled.checked) {
+          const current = lobbyInputs.joinTeleportMode.value || 'none';
+          if (current === 'none') {
+            lobbyInputs.joinTeleportMode.value = 'spawn';
+            config['join-teleport'] = config['join-teleport'] || {};
+            config['join-teleport'].mode = 'spawn';
+          }
+        }
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.joinTeleportMode) {
+      lobbyInputs.joinTeleportMode.addEventListener('change', withLobbyMode(() => {
+        config['join-teleport'] = config['join-teleport'] || {};
+        config['join-teleport'].mode = lobbyInputs.joinTeleportMode.value || 'none';
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.joinTeleportDelay) {
+      lobbyInputs.joinTeleportDelay.addEventListener('input', withLobbyMode(() => {
+        config['join-teleport'] = config['join-teleport'] || {};
+        const value = Number.parseInt(lobbyInputs.joinTeleportDelay.value, 10);
+        config['join-teleport']['delay-seconds'] = Number.isFinite(value) ? value : 0;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.joinTeleportMaxAge) {
+      lobbyInputs.joinTeleportMaxAge.addEventListener('input', withLobbyMode(() => {
+        config['join-teleport'] = config['join-teleport'] || {};
+        config['join-teleport']['last-location'] = config['join-teleport']['last-location'] || {};
+        const value = Number.parseInt(lobbyInputs.joinTeleportMaxAge.value, 10);
+        config['join-teleport']['last-location']['max-age-seconds'] = Number.isFinite(value) ? value : 0;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.npcEnabled) {
+      lobbyInputs.npcEnabled.addEventListener('change', withLobbyMode(() => {
+        config['lobby-npcs'] = config['lobby-npcs'] || {};
+        config['lobby-npcs'].enabled = lobbyInputs.npcEnabled.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.signEnabled) {
+      lobbyInputs.signEnabled.addEventListener('change', withLobbyMode(() => {
+        config['lobby-signs'] = config['lobby-signs'] || {};
+        config['lobby-signs'].enabled = lobbyInputs.signEnabled.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.gameplayDamage) {
+      lobbyInputs.gameplayDamage.addEventListener('change', withLobbyMode(() => {
+        config.gameplay = config.gameplay || {};
+        config.gameplay['disable-damage'] = lobbyInputs.gameplayDamage.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.gameplayHunger) {
+      lobbyInputs.gameplayHunger.addEventListener('change', withLobbyMode(() => {
+        config.gameplay = config.gameplay || {};
+        config.gameplay['disable-hunger'] = lobbyInputs.gameplayHunger.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.gameplayHeal) {
+      lobbyInputs.gameplayHeal.addEventListener('change', withLobbyMode(() => {
+        config.gameplay = config.gameplay || {};
+        config.gameplay['heal-on-join'] = lobbyInputs.gameplayHeal.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.bstatsEnabled) {
+      lobbyInputs.bstatsEnabled.addEventListener('change', withLobbyMode(() => {
+        config.bstats = config.bstats || {};
+        config.bstats.enabled = lobbyInputs.bstatsEnabled.checked;
+        commitChange();
+      }));
+    }
+    if (lobbyInputs.minestomSecret) {
+      lobbyInputs.minestomSecret.addEventListener('input', withLobbyMode(() => {
+        config.minestom = config.minestom || {};
+        config.minestom['velocity-secret'] = lobbyInputs.minestomSecret.value.trim();
+        commitChange();
+      }));
+    }
 
   regexInput.addEventListener('input', () => {
     updateRegexResult(regexInput.value, regexTest.value, regexResult);
@@ -4113,6 +6270,15 @@ onMounted(() => {
 
   clearDataDump();
   enhanceHints();
+  initMessagePreviews();
+  updateAllMessagePreviews();
+  if (tutorialEl) {
+    if (!tutorialState.dismissed && !tutorialState.completed) {
+      setTutorialStep(tutorialState.stepIndex || 0);
+    } else {
+      renderTutorial();
+    }
+  }
 }
 
   init();

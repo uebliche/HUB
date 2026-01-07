@@ -6,7 +6,9 @@ export default withMermaid(defineConfig({
     description: 'Velocity lobby plugin with smart routing',
     base: '/',
     cleanUrls: true,
-    head: [],
+    head: [
+        ['link', {rel: 'icon', href: '/logo.jpg'}]
+    ],
     markdown: {
         mermaid: true
     },

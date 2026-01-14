@@ -129,28 +129,3 @@ jobs:
 
       - name: Build Minestom modules
         run: ./gradlew clean :loader-minestom:build :loader-minestom-ffa:build
-
-  update-readme-badges:
-    needs: [paper-build, velocity-build, fabric-build, neoforge-build, minestom-build, generate-matrix]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && always()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update README tested versions
-        env:
-          TEST_MATRIX: ${{ needs.generate-matrix.outputs.versions }}
-        run: python .github/scripts/update_readme_badges.py
-
-      - name: Commit README update
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "docs: update tested Minecraft versions" || echo "No changes to commit"
-          git push

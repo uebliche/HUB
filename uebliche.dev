@@ -1,0 +1,38 @@
+{
+  "defaults": {
+    "loader": "velocity",
+    "runMode": "server"
+  },
+  "gradleArgs": [
+    "--build-cache",
+    "--parallel",
+    "-PmcVersion={mcVersion}"
+  ],
+  "group": "uebliche/public",
+  "id": "mod/hub",
+  "kind": "project",
+  "loaderDirPrefix": "loader-",
+  "loaderSource": "directory",
+  "loaderVersions": {
+    "minestom": [
+      "1.21.11"
+    ],
+    "minestom-ffa": [
+      "1.21.11"
+    ]
+  },
+  "modrinth": {
+    "pageType": "plugin",
+    "projectId": "HrTclB8n"
+  },
+  "name": "Hub",
+  "runModes": [
+    "server"
+  ],
+  "tasks": {
+    "build": "build",
+    "runClient": "runServer",
+    "runServer": "runServer",
+    "template": ":loader-{loader}:{task}"
+  }
+}

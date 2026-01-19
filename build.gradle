@@ -1,215 +1,46 @@
-import java.net.URL
-import java.io.FileNotFoundException
-import java.io.InputStream
-import java.io.InputStreamReader
-import groovy.json.JsonSlurper
-import java.nio.charset.StandardCharsets
-import java.util.Locale
-
 plugins {
     id 'java'
     id 'eclipse'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.8'
+    id 'net.uebliche.mcmeta'
 }
 
-// Use default Gradle build dirs; may revisit if file locks reappear
-
-def fetchJson(String url) {
-    def connection = new URL(url).openConnection()
-    connection.setRequestProperty('User-Agent', 'uebliche')
-    connection.connectTimeout = 15000
-    connection.readTimeout = 15000
-    connection.doInput = true
-    connection.connect()
-    try (InputStream stream = connection.getInputStream()) {
-        def reader = new InputStreamReader(stream, StandardCharsets.UTF_8)
-        return new JsonSlurper().parse(reader)
-    }
+def resolvedTag = (project.findProperty('tag') ?: 'dev').toString()
+def requestedMcVersion = (project.findProperty('mcVersion')
+        ?: System.getenv('MC_VERSION')
+        ?: System.getenv('mcVersion')
+        ?: '').toString().trim()
+if (requestedMcVersion.equalsIgnoreCase('latest')) {
+    requestedMcVersion = ''
 }
 
-int compareVersions(String a, String b) {
-    List<Integer> left = a.tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
-    List<Integer> right = b.tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
-    int size = Math.max(left.size(), right.size())
-    for (int i = 0; i < size; i++) {
-        int l = i < left.size() ? left.get(i) : 0
-        int r = i < right.size() ? right.get(i) : 0
-        if (l != r) {
-            return l <=> r
-        }
-    }
-    return 0
-}
-
-String fetchLatestProjectVersion(String projectId) {
-    try {
-        def data = fetchJson("https://fill.papermc.io/v3/projects/${projectId}")
-        def rawVersions = data?.versions
-        List<String> versions = []
-        if (rawVersions instanceof Map) {
-            versions = flattenFillVersions(rawVersions as Map)
-        } else if (rawVersions instanceof List) {
-            versions = rawVersions.findAll { it instanceof String }
-            versions.sort { a, b -> compareVersions(a, b) }
-        }
-        if (versions.isEmpty()) {
-            throw new GradleException("No versions returned for project ${projectId}")
-        }
-        return versions.last()
-    } catch (Exception exception) {
-        throw new GradleException("Failed to fetch latest version for ${projectId}", exception)
+mcmeta {
+    minecraftVersion = requestedMcVersion
+    repositories {
+        all()
     }
 }
+mcmeta.resolveNow(project)
 
-String resolveVelocityVersion() {
-    def configured = (findProperty('velocityVersion') ?: System.getenv('VELOCITY_VERSION'))?.toString()
-    if (!configured || configured.equalsIgnoreCase('latest')) {
-        return fetchLatestProjectVersion('velocity')
-    }
-    return configured
+def resolvedMcVersion = project.ext.has('mcmetaMinecraftVersion')
+        ? project.ext.mcmetaMinecraftVersion?.toString()
+        : null
+if (!resolvedMcVersion) {
+    throw new GradleException('mcmeta: minecraft version not resolved')
 }
 
-String resolvePaperVersion() {
-    def configured = (findProperty('paperVersion') ?: System.getenv('PAPER_VERSION'))?.toString()
-    if (!configured || configured.equalsIgnoreCase('latest')) {
-        def latest = fetchLatestProjectVersion('paper')
-        return "${latest}-R0.1-SNAPSHOT"
-    }
-    if (configured ==~ /\d+\.\d+(\.\d+)?/) {
-        return "${configured}-R0.1-SNAPSHOT"
-    }
-    return configured
+def resolvedVelocityVersion = project.ext.mcmetaVelocityVersion?.toString()
+if (!resolvedVelocityVersion) {
+    throw new GradleException("mcmeta: velocity version missing for ${resolvedMcVersion}")
 }
 
-List<String> fetchPaperGameVersions(String minVersion) {
-    try {
-        def projectData = fetchJson("https://fill.papermc.io/v3/projects/paper")
-        Map versionsMap = (projectData?.versions instanceof Map) ? projectData.versions as Map : [:]
-        if (versionsMap.isEmpty()) {
-            throw new GradleException('No versions returned for Paper project')
-        }
-        List<String> ordered = flattenFillVersions(versionsMap)
-        ordered = ordered.findAll { compareVersions(it, minVersion) >= 0 }
-        if (ordered.isEmpty()) {
-            throw new GradleException('No supported versions returned for Paper project')
-        }
-        def supported = []
-        String snapshotCandidate = null
-        ordered.each { version ->
-            Map latestBuild = null
-            try {
-                latestBuild = fetchFillLatestBuild('paper', version, null)
-            } catch (Exception buildException) {
-                logger.debug("Failed to inspect latest build for Paper ${version}", buildException)
-            }
-            String channel = (latestBuild?.channel ?: '').toString().toUpperCase(Locale.ROOT)
-            boolean stable = latestBuild && ['DEFAULT', 'STABLE', 'RECOMMENDED', 'RELEASE'].contains(channel)
-            if (!stable) {
-                Map stableBuild = null
-                try {
-                    stableBuild = fetchFillLatestBuild('paper', version, 'STABLE')
-                } catch (Exception ignored) {
-                    stableBuild = null
-                }
-                if (stableBuild) {
-                    stable = true
-                } else if (snapshotCandidate == null) {
-                    snapshotCandidate = version
-                }
-            }
-            if (stable) {
-                supported << version
-            }
-        }
-        if (snapshotCandidate != null && !supported.contains(snapshotCandidate)) {
-            supported << snapshotCandidate
-        }
-        return supported.unique()
-    } catch (Exception exception) {
-        logger.warn('Failed to determine supported Paper versions, falling back to minimum version.', exception)
-        return [minVersion] as List<String>
-    }
+def resolvedPaperVersion = project.ext.mcmetaPaperVersion?.toString()
+if (!resolvedPaperVersion) {
+    resolvedPaperVersion = "${resolvedMcVersion}-R0.1-SNAPSHOT"
 }
 
-List<String> flattenFillVersions(Map versions) {
-    def ordered = []
-    if (versions instanceof Map) {
-        versions.each { _, value ->
-            if (value instanceof List) {
-                value.findAll { it instanceof String }.each { ordered << it.toString() }
-            }
-        }
-    }
-    ordered.sort { a, b -> compareVersions(a, b) }
-    return ordered
-}
+def resolvedPaperGameVersions = [resolvedMcVersion]
 
-Map fetchFillLatestBuild(String projectId, String version, String desiredChannel = null) {
-    String query = desiredChannel ? "?channel=${desiredChannel}" : ''
-    try {
-        return fetchJson("https://fill.papermc.io/v3/projects/${projectId}/versions/${version}/builds/latest${query}") as Map
-    } catch (FileNotFoundException ignored) {
-        return null
-    }
-}
-
-String attemptSuffix(int attemptNumber) {
-    if (attemptNumber <= 1) {
-        return ''
-    }
-
-    String suffixChars = 'bcdefghijklmnopqrstuvwxyz'
-    int base = suffixChars.length()
-    int value = attemptNumber - 2
-    StringBuilder builder = new StringBuilder()
-
-    while (true) {
-        int digit = value % base
-        builder.insert(0, suffixChars.charAt(digit))
-        value = (value / base) - 1
-        if (value < 0) {
-            break
-        }
-    }
-
-    return builder.toString()
-}
-
-
-
-
-String resolveTag() {
-    def provided = (project.findProperty('tag') ?: System.getenv('TAG') ?: System.getenv('GITHUB_REF_NAME'))
-    provided = provided ? provided.toString().trim() : ''
-    if (provided) {
-        return provided
-    }
-
-    def suffixOverride = (project.findProperty('tagSuffix') ?: System.getenv('TAG_SUFFIX'))
-    suffixOverride = suffixOverride ? suffixOverride.toString().trim().toLowerCase(Locale.ROOT) : ''
-    String baseDate = new Date().format('yyyy.MM.dd')
-    if (suffixOverride) {
-        return baseDate + suffixOverride
-    }
-
-    def attemptSource = (project.findProperty('buildAttempt') ?: System.getenv('BUILD_ATTEMPT') ?: System.getenv('GITHUB_RUN_ATTEMPT'))
-    int attemptNumber = (attemptSource?.toString()?.isInteger()) ? attemptSource.toString().toInteger() : 1
-
-    return baseDate + attemptSuffix(attemptNumber)
-}
-
-def resolvedTag = resolveTag()
-def resolvedVersionTypeRaw = (project.findProperty('version_type') ?: System.getenv('VERSION_TYPE') ?: 'release').toString()
-def resolvedDebugRaw = (project.findProperty('debug') ?: System.getenv('DEBUG') ?: 'false').toString()
-boolean debugEnabled = ['1', 'true', 't', 'yes', 'y', 'on'].contains(resolvedDebugRaw.trim().toLowerCase(Locale.ROOT))
-def resolvedVersionType = debugEnabled && resolvedVersionTypeRaw.equalsIgnoreCase('release')
-        ? 'alpha'
-        : resolvedVersionTypeRaw
-def resolvedDebug = resolvedDebugRaw
-def resolvedVelocityVersion = resolveVelocityVersion()
-def resolvedPaperVersion = resolvePaperVersion()
-def minPaperVersion = (project.findProperty('minPaperVersion') ?: '1.16').toString()
-def supportedPaperGameVersions = fetchPaperGameVersions(minPaperVersion)
 
 description = 'Hub plugin for Velocity and Paper'
 version = resolvedTag
@@ -217,26 +48,25 @@ version = resolvedTag
 ext {
     tag = resolvedTag
     version = resolvedTag
-    versionType = resolvedVersionType
-    debug = resolvedDebug
+    versionType = "release"
+    minecraftVersion = resolvedMcVersion
     velocityVersion = resolvedVelocityVersion
     paperVersion = resolvedPaperVersion
-    paperGameVersions = supportedPaperGameVersions
+    paperGameVersions = resolvedPaperGameVersions
 }
 
 subprojects {
     apply plugin: 'java'
     apply plugin: 'eclipse'
+    apply plugin: 'net.uebliche.mcmeta'
 
     group = 'net.uebliche'
     version = rootProject.version
 
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-        maven {
-            name = "papermc"
-            url = "https://repo.papermc.io/repository/maven-public/"
+    mcmeta {
+        minecraftVersion = rootProject.ext.minecraftVersion
+        repositories {
+            all()
         }
     }
 
@@ -244,7 +74,7 @@ subprojects {
         tag = rootProject.tag
         version = rootProject.version
         versionType = rootProject.versionType
-        debug = rootProject.debug
+        minecraftVersion = rootProject.minecraftVersion
         velocityVersion = rootProject.velocityVersion
         paperVersion = rootProject.paperVersion
         paperGameVersions = rootProject.paperGameVersions
@@ -260,12 +90,3 @@ subprojects {
         options.release.set(targetJavaVersion)
     }
 }
-
-
-
-
-
-
-
-
-

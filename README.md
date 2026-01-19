@@ -27,7 +27,7 @@ HUB is a lobby routing plugin for Minecraft networks. It runs primarily on Veloc
 
 ## Docs
 All details, setup, configuration, and the web config editor are here:
-https://hub.uebliche.info/
+https://uebliche.info/hub
 
 ## Downloads
 Modrinth: https://modrinth.com/plugin/hub

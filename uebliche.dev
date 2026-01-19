@@ -31,8 +31,7 @@
   ],
   "tasks": {
     "build": "build",
-    "runClient": "runServer",
-    "runServer": "runServer",
+    "runServer": "runVelocity",
     "template": ":loader-{loader}:{task}"
   }
 }

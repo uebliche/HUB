@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+hub_dir="$repo_root/mod/hub"
+
+if [[ ! -d "$hub_dir" ]]; then
+  echo "Hub directory not found: $hub_dir" >&2
+  exit 1
+fi
+
+cd "$hub_dir"
+
+if [[ ! -x ./gradlew ]]; then
+  echo "gradlew not found in $hub_dir" >&2
+  exit 1
+fi
+
+resolve_velocity_version() {
+  local url="https://raw.githubusercontent.com/uebliche/mcmeta/proxy/velocity-latest/artifacts.json"
+  python3 - <<'PY' "$url"
+import json
+import sys
+import urllib.request
+
+url = sys.argv[1]
+with urllib.request.urlopen(url, timeout=15) as response:
+    data = json.load(response)
+
+proxies = data.get("artifacts", {}).get("proxies", {})
+velocity = proxies.get("velocity", {})
+for group in velocity.get("groups", []):
+    newest = group.get("range", {}).get("newest")
+    if newest:
+        print(newest)
+        sys.exit(0)
+
+sys.exit(1)
+PY
+}
+
+velocity_version="$(resolve_velocity_version)"
+if [[ -z "$velocity_version" ]]; then
+  echo "Failed to resolve Velocity version from mcmeta." >&2
+  exit 1
+fi
+
+echo "Running Velocity tests with mcmeta version: $velocity_version"
+./gradlew :loader-velocity:test --no-daemon --build-cache --parallel -PvelocityVersion="$velocity_version"

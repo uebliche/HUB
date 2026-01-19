@@ -36,7 +36,7 @@ def templateDest = layout.buildDirectory.dir('generated/sources/templates')
 
 task generateTemplates(type: Copy) {
     def commitCode = rootProject.hasProperty('commitCode') ? rootProject.property('commitCode') : (System.getenv('GITHUB_SHA') ?: 'dev')
-    def releaseTag = rootProject.hasProperty('releaseDate') ? rootProject.property('releaseDate') : (rootProject.ext.has('tag') ? rootProject.ext.tag : rootProject.version?.toString())
+    def releaseTag = rootProject.ext.has('tag') ? rootProject.ext.tag : rootProject.version?.toString()
 
     def props = [
             'version': rootProject.version?.toString(),

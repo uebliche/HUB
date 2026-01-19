@@ -24,20 +24,5 @@ include 'loader-paper'
 include 'loader-minestom'
 include 'loader-minestom-ffa'
 
-def wantsNeoForge = gradle.startParameter.taskNames.any { it.contains('loader-neoforge') }
-        || (System.getenv('INCLUDE_NEOFORGE') ?: 'false').toBoolean()
-
-if (wantsNeoForge) {
-    include 'loader-neoforge'
-} else {
-    logger.lifecycle("Skipping loader-neoforge configuration (set INCLUDE_NEOFORGE=true or target a loader-neoforge task to include it).")
-}
-
-def wantsFabric = gradle.startParameter.taskNames.any { it.contains('loader-fabric') }
-        || (System.getenv('INCLUDE_FABRIC') ?: 'false').toBoolean()
-
-if (wantsFabric) {
-    include 'loader-fabric'
-} else {
-    logger.lifecycle("Skipping loader-fabric configuration (set INCLUDE_FABRIC=true or target a loader-fabric task to include it).")
-}
+include 'loader-neoforge'
+include 'loader-fabric'

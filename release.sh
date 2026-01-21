@@ -29,10 +29,12 @@ resolve_velocity_version() {
   local mc_version="$1"
   local version=""
   version="$(./gradlew -q :loader-velocity:properties \
-    | awk '/^velocityVersion:/ {print $2; exit}')"
+    | awk -F': ' '/velocityVersion:/ {print $2; exit}' \
+    | tr -d '\r')"
   if [[ -z "$version" && -n "$mc_version" ]]; then
     version="$(./gradlew -q :loader-velocity:properties "-PmcVersion=$mc_version" \
-      | awk '/^velocityVersion:/ {print $2; exit}')"
+      | awk -F': ' '/velocityVersion:/ {print $2; exit}' \
+      | tr -d '\r')"
   fi
   echo "$version"
 }

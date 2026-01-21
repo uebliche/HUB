@@ -45,7 +45,7 @@ build_loader() {
 
   if [[ ! -d "$loader_dir" ]]; then
     echo "Loader directory not found: $loader_dir" >&2
-    return 1
+    return 2
   fi
 
   local gradle_args=("--build-cache" "--parallel")
@@ -130,16 +130,47 @@ build_loader() {
       jar_name="${paper_prefix}.jar"
     fi
   fi
+  if [[ "$loader" == "velocity" ]]; then
+    if [[ "$jar_name" != *"+velocity+"* || "$jar_name" == *"-velocity-"* ]]; then
+      echo "Invalid velocity jar name: $jar_name" >&2
+      return 1
+    fi
+  fi
+  if [[ "$loader" == "paper" ]]; then
+    if [[ "$jar_name" != *"+paper+"* || "$jar_name" == *"-paper-"* ]]; then
+      echo "Invalid paper jar name: $jar_name" >&2
+      return 1
+    fi
+  fi
   cp -f "$jar_path" "$release_dir/$jar_name"
   local release_file="$release_dir/$jar_name"
 
   printf "Release prepared:\n- %s\n" "$release_file"
 }
 
+build_failures=0
+build_successes=0
+
 for raw_loader in "${LOADER_LIST[@]}"; do
   loader="$(echo "$raw_loader" | xargs)"
   if [[ -z "$loader" ]]; then
     continue
   fi
-  build_loader "$loader"
+  if build_loader "$loader"; then
+    build_successes=$((build_successes + 1))
+  else
+    status=$?
+    if [[ "$status" -eq 2 ]]; then
+      continue
+    fi
+    build_failures=$((build_failures + 1))
+  fi
 done
+
+if [[ "$build_successes" -eq 0 ]]; then
+  echo "No loader artifacts were built." >&2
+  exit 1
+fi
+if [[ "$build_failures" -ne 0 ]]; then
+  exit 1
+fi

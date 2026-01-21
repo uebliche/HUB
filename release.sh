@@ -53,7 +53,9 @@ build_loader() {
   local resolved_tag=""
   if [[ -n "$BUILD_TAG" ]]; then
     resolved_tag="$BUILD_TAG"
-    if [[ -n "$MC_VERSION" ]]; then
+    if [[ "$resolved_tag" == *"+"* ]]; then
+      :
+    elif [[ -n "$MC_VERSION" ]]; then
       if [[ "$loader" == "velocity" ]]; then
         local velocity_version=""
         velocity_version="$(resolve_velocity_version "$MC_VERSION" || true)"

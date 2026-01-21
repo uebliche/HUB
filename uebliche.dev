@@ -8,7 +8,8 @@
       "command": "bash",
       "env": {
         "LOADER": "{LOADER}",
-        "MC_VERSION": "{mcVersion}"
+        "MC_VERSION": "{mcVersion}",
+        "UEBLICHE_BUILD_TAG": "{UEBLICHE_BUILD_TAG}"
       },
       "s3Select": false,
       "s3": {

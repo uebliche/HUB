@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+LOADER="${LOADER:-${TARGET_LOADER:-}}"
+MC_VERSION="${MC_VERSION:-${mcVersion:-}}"
+BUILD_TAG="${UEBLICHE_BUILD_TAG:-${TAG:-${BUILD_TAG:-}}}"
+
+if [[ -z "$LOADER" ]]; then
+  echo "Missing LOADER (set via Uebliche.dev targetSelect)." >&2
+  exit 1
+fi
+
+IFS=',' read -r -a LOADER_LIST <<< "$LOADER"
+
+build_loader() {
+  local loader="$1"
+  local loader_dir="$ROOT_DIR/loader-$loader"
+
+  if [[ ! -d "$loader_dir" ]]; then
+    echo "Loader directory not found: $loader_dir" >&2
+    return 1
+  fi
+
+  local gradle_args=("--build-cache" "--parallel")
+  if [[ -n "$MC_VERSION" ]]; then
+    gradle_args+=("-PmcVersion=$MC_VERSION")
+  fi
+  local resolved_tag=""
+  if [[ -n "$BUILD_TAG" ]]; then
+    resolved_tag="$BUILD_TAG"
+    if [[ -n "$MC_VERSION" ]]; then
+      resolved_tag="${resolved_tag}+${loader}+${MC_VERSION}"
+    else
+      resolved_tag="${resolved_tag}+${loader}"
+    fi
+    gradle_args+=("-Ptag=$resolved_tag")
+  fi
+
+  pushd "$ROOT_DIR" >/dev/null
+  ./gradlew ":loader-$loader:build" "${gradle_args[@]}"
+  popd >/dev/null
+
+  shopt -s nullglob
+  local jar_candidates=("$loader_dir"/build/libs/*.jar)
+  shopt -u nullglob
+
+  if [[ ${#jar_candidates[@]} -eq 0 ]]; then
+    echo "No jar artifacts found in $loader_dir/build/libs" >&2
+    return 1
+  fi
+
+  local jar_path
+  jar_path="$(ls -t "${jar_candidates[@]}" | grep -vE '(-sources|-javadoc)\\.jar$' | head -n 1)"
+  if [[ -z "$jar_path" ]]; then
+    echo "No release jar found in $loader_dir/build/libs" >&2
+    return 1
+  fi
+
+  local release_dir="$ROOT_DIR/release/$loader"
+  mkdir -p "$release_dir"
+
+  cp -f "$jar_path" "$release_dir/"
+  local release_file="$release_dir/$(basename "$jar_path")"
+
+  local sha256
+  sha256="$(shasum -a 256 "$release_file" | awk '{print $1}')"
+  local size_bytes
+  if stat -f%z "$release_file" >/dev/null 2>&1; then
+    size_bytes="$(stat -f%z "$release_file")"
+  else
+    size_bytes="$(stat -c%s "$release_file")"
+  fi
+
+  local version="$resolved_tag"
+  if [[ -z "$version" ]]; then
+    pushd "$ROOT_DIR" >/dev/null
+    version="$(./gradlew -q properties | awk '/^version:/ {print $2; exit}')"
+    popd >/dev/null
+  fi
+  if [[ -z "$version" ]]; then
+    version="dev"
+  fi
+
+  cat <<JSON > "$ROOT_DIR/release/update-$loader.json"
+{
+  "version": "$version",
+  "loader": "$loader",
+  "file": "$(basename "$release_file")",
+  "sha256": "$sha256",
+  "size": $size_bytes
+}
+JSON
+
+  printf "Release prepared:\n- %s\n- %s\n" "$release_file" "$ROOT_DIR/release/update-$loader.json"
+}
+
+for raw_loader in "${LOADER_LIST[@]}"; do
+  loader="$(echo "$raw_loader" | xargs)"
+  if [[ -z "$loader" ]]; then
+    continue
+  fi
+  build_loader "$loader"
+done

@@ -1,4 +1,53 @@
 {
+  "actions": [
+    {
+      "args": [
+        "-lc",
+        "bash release.sh"
+      ],
+      "command": "bash",
+      "env": {
+        "LOADER": "{LOADER}",
+        "MC_VERSION": "{mcVersion}"
+      },
+      "s3Select": false,
+      "s3": {
+        "storeId": "s3-1768566992434",
+        "bucket": "updates-uebliche",
+        "prefix": ""
+      },
+      "label": "Deploy hub",
+      "uploads": [
+        {
+          "path": "release/**",
+          "key": "{S3_PROJECT}/{UPDATE_CHANNEL}/{relpath}"
+        }
+      ],
+      "targetSelect": {
+        "key": "LOADER",
+        "options": [
+          "forge",
+          "neoforge",
+          "velocity",
+          "paper",
+          "minestom"
+        ],
+        "defaults": [
+          "velocity"
+        ],
+        "remember": true,
+        "title": "Deploy loaders",
+        "channelKey": "UPDATE_CHANNEL",
+        "channelOptions": [
+          "release",
+          "beta"
+        ],
+        "channelDefault": "release",
+        "channelTitle": "Channel",
+        "separator": ","
+      }
+    }
+  ],
   "defaults": {
     "loader": "velocity",
     "runMode": "server"
@@ -33,5 +82,21 @@
     "build": "build",
     "runServer": "runVelocity",
     "template": ":loader-{loader}:{task}"
-  }
+  },
+  "vars": [
+    {
+      "default": "release",
+      "key": "UPDATE_CHANNEL",
+      "label": "Update channel",
+      "options": [
+        "release",
+        "beta"
+      ]
+    },
+    {
+      "default": "hub",
+      "key": "S3_PROJECT",
+      "label": "S3 project prefix"
+    }
+  ]
 }

@@ -35,7 +35,8 @@ if (!resolvedVelocityVersion) {
 }
 
 def resolvedPaperVersion = project.ext.mcmetaPaperVersion?.toString()
-if (!resolvedPaperVersion) {
+def paperVersionIsNumeric = resolvedPaperVersion?.isInteger() ?: false
+if (!resolvedPaperVersion || paperVersionIsNumeric) {
     resolvedPaperVersion = "${resolvedMcVersion}-R0.1-SNAPSHOT"
 }
 

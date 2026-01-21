@@ -27,12 +27,14 @@ mkdir -p "$ROOT_DIR/release"
 
 resolve_velocity_version() {
   local mc_version="$1"
-  local args=()
-  if [[ -n "$mc_version" ]]; then
-    args+=("-PmcVersion=$mc_version")
+  local version=""
+  version="$(./gradlew -q :loader-velocity:properties \
+    | awk '/^velocityVersion:/ {print $2; exit}')"
+  if [[ -z "$version" && -n "$mc_version" ]]; then
+    version="$(./gradlew -q :loader-velocity:properties "-PmcVersion=$mc_version" \
+      | awk '/^velocityVersion:/ {print $2; exit}')"
   fi
-  ./gradlew -q :loader-velocity:properties "${args[@]}" \
-    | awk '/^velocityVersion:/ {print $2; exit}'
+  echo "$version"
 }
 
 build_loader() {

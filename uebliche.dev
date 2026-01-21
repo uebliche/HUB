@@ -21,7 +21,8 @@
       },
       "label": "Deploy hub",
       "data": {
-        "UPDATE_LOADER_MANIFEST": "1"
+        "UPDATE_LOADER_MANIFEST": "1",
+        "CLEAN_RELEASE_DIR": "1"
       },
       "uploads": [
         {

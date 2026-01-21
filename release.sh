@@ -113,6 +113,12 @@ build_loader() {
 
   local jar_name
   jar_name="$(basename "$jar_path")"
+  if [[ "$loader" == "velocity" && "$jar_name" == *"+velocity+"*"-velocity-"* ]]; then
+    local velocity_prefix="${jar_name%%-velocity-*}"
+    if [[ "$velocity_prefix" == *"+velocity+"* ]]; then
+      jar_name="${velocity_prefix}.jar"
+    fi
+  fi
   cp -f "$jar_path" "$release_dir/$jar_name"
   local release_file="$release_dir/$jar_name"
 

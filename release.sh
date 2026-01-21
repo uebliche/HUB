@@ -22,6 +22,8 @@ if [[ -z "$LOADER" ]]; then
 fi
 
 IFS=',' read -r -a LOADER_LIST <<< "$LOADER"
+rm -rf "$ROOT_DIR/release"
+mkdir -p "$ROOT_DIR/release"
 
 build_loader() {
   local loader="$1"

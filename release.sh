@@ -25,6 +25,16 @@ IFS=',' read -r -a LOADER_LIST <<< "$LOADER"
 rm -rf "$ROOT_DIR/release"
 mkdir -p "$ROOT_DIR/release"
 
+resolve_velocity_version() {
+  local mc_version="$1"
+  local args=()
+  if [[ -n "$mc_version" ]]; then
+    args+=("-PmcVersion=$mc_version")
+  fi
+  ./gradlew -q :loader-velocity:properties "${args[@]}" \
+    | awk '/^velocityVersion:/ {print $2; exit}'
+}
+
 build_loader() {
   local loader="$1"
   local loader_dir="$ROOT_DIR/loader-$loader"
@@ -42,7 +52,17 @@ build_loader() {
   if [[ -n "$BUILD_TAG" ]]; then
     resolved_tag="$BUILD_TAG"
     if [[ -n "$MC_VERSION" ]]; then
-      resolved_tag="${resolved_tag}+${loader}+${MC_VERSION}"
+      if [[ "$loader" == "velocity" ]]; then
+        local velocity_version=""
+        velocity_version="$(resolve_velocity_version "$MC_VERSION" || true)"
+        if [[ -n "$velocity_version" ]]; then
+          resolved_tag="${resolved_tag}+${velocity_version}"
+        else
+          resolved_tag="${resolved_tag}+${loader}+${MC_VERSION}"
+        fi
+      else
+        resolved_tag="${resolved_tag}+${loader}+${MC_VERSION}"
+      fi
     else
       resolved_tag="${resolved_tag}+${loader}"
     fi

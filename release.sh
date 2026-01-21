@@ -45,6 +45,11 @@ build_loader() {
       resolved_tag="${resolved_tag}+${loader}"
     fi
     gradle_args+=("-Ptag=$resolved_tag")
+    gradle_args=("--rerun-tasks" "--no-build-cache" "--parallel")
+    if [[ -n "$MC_VERSION" ]]; then
+      gradle_args+=("-PmcVersion=$MC_VERSION")
+    fi
+    gradle_args+=("-Ptag=$resolved_tag")
   fi
 
   pushd "$ROOT_DIR" >/dev/null

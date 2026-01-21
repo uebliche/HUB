@@ -73,6 +73,7 @@ build_loader() {
   fi
 
   local release_dir="$ROOT_DIR/release/$loader"
+  rm -rf "$release_dir"
   mkdir -p "$release_dir"
 
   cp -f "$jar_path" "$release_dir/"

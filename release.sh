@@ -75,7 +75,11 @@ build_loader() {
         resolved_tag="${resolved_tag}+${loader}"
       fi
     elif [[ -n "$MC_VERSION" ]]; then
-      resolved_tag="${resolved_tag}+${loader}+${MC_VERSION}"
+      local normalized_version="$MC_VERSION"
+      if [[ "$loader" == "paper" && "$normalized_version" == paper-* ]]; then
+        normalized_version="${normalized_version#paper-}"
+      fi
+      resolved_tag="${resolved_tag}+${loader}+${normalized_version}"
     else
       resolved_tag="${resolved_tag}+${loader}"
     fi
@@ -117,6 +121,12 @@ build_loader() {
     local velocity_prefix="${jar_name%%-velocity-*}"
     if [[ "$velocity_prefix" == *"+velocity+"* ]]; then
       jar_name="${velocity_prefix}.jar"
+    fi
+  fi
+  if [[ "$loader" == "paper" && "$jar_name" == *"+paper+"*"-paper-"* ]]; then
+    local paper_prefix="${jar_name%%-paper-*}"
+    if [[ "$paper_prefix" == *"+paper+"* ]]; then
+      jar_name="${paper_prefix}.jar"
     fi
   fi
   cp -f "$jar_path" "$release_dir/$jar_name"

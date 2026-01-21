@@ -70,7 +70,7 @@ build_loader() {
         velocity_version="$MC_VERSION"
       fi
       if [[ -n "$velocity_version" ]]; then
-        resolved_tag="${resolved_tag}+${velocity_version}"
+        resolved_tag="${resolved_tag}+velocity+${velocity_version}"
       else
         resolved_tag="${resolved_tag}+${loader}"
       fi
@@ -111,8 +111,10 @@ build_loader() {
   rm -rf "$release_dir"
   mkdir -p "$release_dir"
 
-  cp -f "$jar_path" "$release_dir/"
-  local release_file="$release_dir/$(basename "$jar_path")"
+  local jar_name
+  jar_name="$(basename "$jar_path")"
+  cp -f "$jar_path" "$release_dir/$jar_name"
+  local release_file="$release_dir/$jar_name"
 
   printf "Release prepared:\n- %s\n" "$release_file"
 }

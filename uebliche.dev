@@ -9,7 +9,9 @@
       "env": {
         "LOADER": "{LOADER}",
         "MC_VERSION": "{mcVersion}",
-        "UEBLICHE_BUILD_TAG": "{UEBLICHE_BUILD_TAG}"
+        "UEBLICHE_BUILD_TAG": "{UEBLICHE_BUILD_TAG}",
+        "BUILD_TAG": "{UEBLICHE_BUILD_TAG}",
+        "TAG": "{UEBLICHE_BUILD_TAG}"
       },
       "s3Select": false,
       "s3": {

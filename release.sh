@@ -6,6 +6,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOADER="${LOADER:-${TARGET_LOADER:-}}"
 MC_VERSION="${MC_VERSION:-${mcVersion:-}}"
 BUILD_TAG="${UEBLICHE_BUILD_TAG:-${TAG:-${BUILD_TAG:-}}}"
+if [[ -z "$BUILD_TAG" ]]; then
+  git_hash="$(git -C "$ROOT_DIR" rev-parse --short=8 HEAD 2>/dev/null || true)"
+  if [[ -n "$git_hash" ]]; then
+    BUILD_TAG="$(date +%Y.%m.%d)-$git_hash"
+  fi
+fi
+if [[ -z "$BUILD_TAG" ]]; then
+  BUILD_TAG="dev"
+fi
 
 if [[ -z "$LOADER" ]]; then
   echo "Missing LOADER (set via Uebliche.dev targetSelect)." >&2

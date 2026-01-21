@@ -58,6 +58,9 @@ build_loader() {
     elif [[ "$loader" == "velocity" ]]; then
       local velocity_version=""
       velocity_version="$(resolve_velocity_version "$MC_VERSION" || true)"
+      if [[ "$velocity_version" == velocity-* ]]; then
+        velocity_version="${velocity_version#velocity-}"
+      fi
       if [[ -z "$velocity_version" && "$MC_VERSION" == velocity-* ]]; then
         velocity_version="${MC_VERSION#velocity-}"
       fi

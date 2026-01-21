@@ -1,7 +1,6 @@
 // Project: velocity
 plugins {
     id 'xyz.jpenilla.run-velocity'
-    id 'com.modrinth.minotaur'
 }
 
 // Dependencies
@@ -37,15 +36,4 @@ tasks.jar {
 
 
 // Modrinth configuration
-modrinth {
-    token = System.getenv("MODRINTH_API_TOKEN") ?: System.getenv("MODRINTH_TOKEN")
-    projectId = "HrTclB8n"
-    versionNumber = rootProject.version?.toString()
-    changelog = System.getenv("CHANGELOG") ?: getChangelog()
-    versionType = rootProject.versionType
-    uploadFile = jar
-    gameVersions = rootProject.paperGameVersions
-    loaders = List.of("velocity")
-    syncBodyFrom = rootProject.file("README.md").text
-}
 

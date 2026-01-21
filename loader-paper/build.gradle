@@ -1,6 +1,5 @@
 plugins {
     id 'xyz.jpenilla.run-paper'
-    id 'com.modrinth.minotaur'
 }
 
 dependencies {
@@ -41,14 +40,3 @@ tasks.runServer {
     minecraftVersion(targetVersion)
 }
 
-modrinth {
-    token = System.getenv("MODRINTH_API_TOKEN") ?: System.getenv("MODRINTH_TOKEN")
-    projectId = "HrTclB8n"
-    versionNumber = rootProject.version?.toString()
-    changelog = System.getenv("CHANGELOG") ?: getChangelog()
-    versionType = rootProject.versionType
-    uploadFile = jar
-    gameVersions = rootProject.paperGameVersions
-    loaders = List.of("paper")
-    syncBodyFrom = rootProject.file("README.md").text
-}

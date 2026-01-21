@@ -123,14 +123,11 @@ build_loader() {
       jar_name="${velocity_prefix}.jar"
     fi
   fi
-  if [[ "$loader" == "paper" && "$jar_name" == *"+paper+"*"-paper-"* ]]; then
+  if [[ "$loader" == "paper" && "$jar_name" == *"+paper"*"-paper-"* ]]; then
     local paper_prefix="${jar_name%%-paper-*}"
-    if [[ "$paper_prefix" == *"+paper+"* ]]; then
+    if [[ "$paper_prefix" == *"+paper"* ]]; then
       jar_name="${paper_prefix}.jar"
     fi
-  fi
-  if [[ "$loader" == "paper" && "$jar_name" == *"+paper-paper-"* ]]; then
-    jar_name="${jar_name/+paper-paper-/+paper+}"
   fi
   cp -f "$jar_path" "$release_dir/$jar_name"
   local release_file="$release_dir/$jar_name"

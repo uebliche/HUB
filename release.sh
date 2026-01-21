@@ -129,6 +129,9 @@ build_loader() {
       jar_name="${paper_prefix}.jar"
     fi
   fi
+  if [[ "$loader" == "paper" && "$jar_name" == *"+paper-paper-"* ]]; then
+    jar_name="${jar_name/+paper-paper-/+paper+}"
+  fi
   cp -f "$jar_path" "$release_dir/$jar_name"
   local release_file="$release_dir/$jar_name"
 

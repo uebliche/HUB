@@ -20,6 +20,9 @@
         "prefix": ""
       },
       "label": "Deploy hub",
+      "data": {
+        "UPDATE_LOADER_MANIFEST": "1"
+      },
       "uploads": [
         {
           "path": "release/**",

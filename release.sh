@@ -81,36 +81,7 @@ build_loader() {
   cp -f "$jar_path" "$release_dir/"
   local release_file="$release_dir/$(basename "$jar_path")"
 
-  local sha256
-  sha256="$(shasum -a 256 "$release_file" | awk '{print $1}')"
-  local size_bytes
-  if stat -f%z "$release_file" >/dev/null 2>&1; then
-    size_bytes="$(stat -f%z "$release_file")"
-  else
-    size_bytes="$(stat -c%s "$release_file")"
-  fi
-
-  local version="$resolved_tag"
-  if [[ -z "$version" ]]; then
-    pushd "$ROOT_DIR" >/dev/null
-    version="$(./gradlew -q properties | awk '/^version:/ {print $2; exit}')"
-    popd >/dev/null
-  fi
-  if [[ -z "$version" ]]; then
-    version="dev"
-  fi
-
-  cat <<JSON > "$ROOT_DIR/release/update-$loader.json"
-{
-  "version": "$version",
-  "loader": "$loader",
-  "file": "$(basename "$release_file")",
-  "sha256": "$sha256",
-  "size": $size_bytes
-}
-JSON
-
-  printf "Release prepared:\n- %s\n- %s\n" "$release_file" "$ROOT_DIR/release/update-$loader.json"
+  printf "Release prepared:\n- %s\n" "$release_file"
 }
 
 for raw_loader in "${LOADER_LIST[@]}"; do

@@ -117,10 +117,13 @@ build_loader() {
 
   local jar_name
   jar_name="$(basename "$jar_path")"
-  if [[ "$loader" == "velocity" && "$jar_name" == *"+velocity+"*"-velocity-"* ]]; then
-    local velocity_prefix="${jar_name%%-velocity-*}"
-    if [[ "$velocity_prefix" == *"+velocity+"* ]]; then
-      jar_name="${velocity_prefix}.jar"
+  if [[ "$loader" == "velocity" ]]; then
+    jar_name="${jar_name/+velocity-velocity-/+velocity+}"
+    if [[ "$jar_name" == *"+velocity+"*"-velocity-"* ]]; then
+      local velocity_prefix="${jar_name%%-velocity-*}"
+      if [[ "$velocity_prefix" == *"+velocity+"* ]]; then
+        jar_name="${velocity_prefix}.jar"
+      fi
     fi
   fi
   if [[ "$loader" == "paper" ]]; then
@@ -172,5 +175,6 @@ if [[ "$build_successes" -eq 0 ]]; then
   exit 1
 fi
 if [[ "$build_failures" -ne 0 ]]; then
-  exit 1
+  echo "Some loaders failed to build; uploading successful artifacts only." >&2
+  exit 0
 fi

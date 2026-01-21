@@ -57,10 +57,16 @@ build_loader() {
       if [[ "$loader" == "velocity" ]]; then
         local velocity_version=""
         velocity_version="$(resolve_velocity_version "$MC_VERSION" || true)"
+        if [[ -z "$velocity_version" && "$MC_VERSION" == velocity-* ]]; then
+          velocity_version="${MC_VERSION#velocity-}"
+        fi
+        if [[ -z "$velocity_version" && -n "$MC_VERSION" ]]; then
+          velocity_version="$MC_VERSION"
+        fi
         if [[ -n "$velocity_version" ]]; then
           resolved_tag="${resolved_tag}+${velocity_version}"
         else
-          resolved_tag="${resolved_tag}+${loader}+${MC_VERSION}"
+          resolved_tag="${resolved_tag}+${loader}"
         fi
       else
         resolved_tag="${resolved_tag}+${loader}+${MC_VERSION}"

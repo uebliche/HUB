@@ -148,3 +148,5 @@ apps/**/node_modules/
 apps/**/dist/
 core/bin/
 features/bin/
+
+.gradle-cache/

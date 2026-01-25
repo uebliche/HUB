@@ -21,7 +21,27 @@ evaluationDependsOn(':common')
 group = rootProject.group
 version = rootProject.version
 
-def mcVer = (System.getenv('mcVersion') ?: project.findProperty('mcVersion') ?: '1.21.10').toString()
+def looksLikeMcVersion = { String value ->
+    if (!value) {
+        return false
+    }
+    def normalized = value.trim()
+    if (normalized.equalsIgnoreCase('latest')) {
+        return true
+    }
+    if (normalized ==~ /\\d+w\\d+[a-z]/) {
+        return true
+    }
+    if (normalized ==~ /\\d+\\.\\d+(\\.\\d+)?-pre\\d+/) {
+        return true
+    }
+    if (normalized ==~ /\\d+\\.\\d+(\\.\\d+)?-rc\\d+/) {
+        return true
+    }
+    return normalized ==~ /1\\.\\d+(\\.\\d+)?/
+}
+def mcVerCandidate = (System.getenv('mcVersion') ?: project.findProperty('mcVersion') ?: '').toString()
+def mcVer = looksLikeMcVersion(mcVerCandidate) ? mcVerCandidate : '1.21.10'
 def neoVersions = [
         // NeoForge build for MC 1.21.10
         '1.21.10': '21.10.63'

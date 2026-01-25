@@ -31,6 +31,19 @@
           "key": "{S3_PROJECT}/{UPDATE_CHANNEL}/{relpath}"
         }
       ],
+      "deployTargets": {
+        "key": "DEPLOY_TARGETS",
+        "options": [
+          "s3",
+          "modrinth"
+        ],
+        "defaults": [
+          "s3"
+        ],
+        "remember": true,
+        "title": "Deploy targets",
+        "separator": ","
+      },
       "targetSelect": {
         "key": "LOADER",
         "options": [
@@ -70,6 +83,7 @@
   "kind": "project",
   "loaderDirPrefix": "loader-",
   "loaderSource": "directory",
+  "changelogPath": "../../docs/hub/changelog.md",
   "loaderVersions": {
     "minestom": [
       "1.21.11"

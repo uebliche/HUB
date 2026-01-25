@@ -19,7 +19,26 @@ def resolveMinecraftVersion = { ->
             project.findProperty('mcVersion'),
             project.findProperty('minecraft_version')
     ]
-    candidates.find { it }?.toString()
+    def looksLikeMcVersion = { String value ->
+        if (!value) {
+            return false
+        }
+        def normalized = value.trim()
+        if (normalized.equalsIgnoreCase('latest')) {
+            return true
+        }
+        if (normalized ==~ /\\d+w\\d+[a-z]/) {
+            return true
+        }
+        if (normalized ==~ /\\d+\\.\\d+(\\.\\d+)?-pre\\d+/) {
+            return true
+        }
+        if (normalized ==~ /\\d+\\.\\d+(\\.\\d+)?-rc\\d+/) {
+            return true
+        }
+        return normalized ==~ /1\\.\\d+(\\.\\d+)?/
+    }
+    candidates.find { looksLikeMcVersion(it?.toString()) }?.toString()
 }
 
 def latestGameVersion = { ->

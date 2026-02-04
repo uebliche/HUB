@@ -1,6 +1,20 @@
 {
   "actions": [
     {
+      "label": "Run",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "docker compose -f compose.dev.yml up --build"
+      ],
+      "env": {
+        "HOST_PORT": "{HOST_PORT}",
+        "DOCKBRIDGE_AUTOREGISTER": "{DOCKBRIDGE_AUTOREGISTER}",
+        "DOCKBRIDGE_AUTOJOIN": "{DOCKBRIDGE_AUTOJOIN}",
+        "DOCKBRIDGE_ENABLED": "{DOCKBRIDGE_ENABLED}"
+      }
+    },
+    {
       "args": [
         "-lc",
         "bash release.sh"
@@ -92,6 +106,23 @@
       "1.21.11"
     ]
   },
+  "versionRangeByLoader": {
+    "velocity": {
+      "min": "3.1.1-SNAPSHOT"
+    },
+    "paper": {
+      "min": "1.21.11"
+    },
+    "forge": {
+      "min": "1.21.11"
+    },
+    "neoforge": {
+      "min": "1.21.11"
+    },
+    "minestom": {
+      "min": "1.21.11"
+    }
+  },
   "modrinth": {
     "pageType": "plugin",
     "projectId": "HrTclB8n"
@@ -119,6 +150,38 @@
       "default": "hub",
       "key": "S3_PROJECT",
       "label": "S3 project prefix"
+    },
+    {
+      "default": "0",
+      "key": "HOST_PORT",
+      "label": "Docker host port (0 = auto)"
+    },
+    {
+      "key": "DOCKBRIDGE_AUTOREGISTER",
+      "label": "DockBridge autoregister",
+      "default": "1",
+      "options": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "DOCKBRIDGE_AUTOJOIN",
+      "label": "DockBridge autojoin",
+      "default": "0",
+      "options": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "DOCKBRIDGE_ENABLED",
+      "label": "DockBridge enabled",
+      "default": "1",
+      "options": [
+        "0",
+        "1"
+      ]
     }
   ]
 }

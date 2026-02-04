@@ -3,7 +3,7 @@ name: hub-dev
 services:
   # Velocity proxy running your plugin via Gradle
   velocity:
-    image: eclipse-temurin:21-jdk
+    image: uebliche/base-java21
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -18,6 +18,7 @@ services:
       GRADLE_PROJECT_CACHE_DIR: /gradle-cache/velocity-project
       VELOCITY_VERSION: ${VELOCITY_VERSION:-latest}
       HUB_DEBUG: "true"
+      DOCKBRIDGE_ENABLED: ${DOCKBRIDGE_ENABLED:-1}
       JAVA_TOOL_OPTIONS: ${VELOCITY_JAVA_TOOL_OPTIONS:--Xms256M -Xmx768M -XX:+UseG1GC}
       GRADLE_OPTS: ${VELOCITY_GRADLE_OPTS:--Dorg.gradle.jvmargs=-Xmx768M -Dorg.gradle.workers.max=2}
     command:
@@ -32,7 +33,10 @@ services:
         mkdir -p /gradle-cache/velocity
         mkdir -p /workspace/loader-velocity/run/plugins
         dockbridge_target=/workspace/loader-velocity/run/plugins/DockBridge.jar
-        if [ "$${DOCKBRIDGE_REFRESH:-0}" != "1" ] && [ -s "$$dockbridge_target" ]; then
+        if [ "$${DOCKBRIDGE_ENABLED:-1}" = "0" ]; then
+          rm -f "$$dockbridge_target"
+          echo "DockBridge autostart disabled."
+        elif [ "$${DOCKBRIDGE_REFRESH:-0}" != "1" ] && [ -s "$$dockbridge_target" ]; then
           echo "Using cached DockBridge.jar (set DOCKBRIDGE_REFRESH=1 to update)."
         else
           if ! command -v curl >/dev/null || ! command -v jq >/dev/null; then
@@ -77,7 +81,7 @@ services:
       - minigames-lobby
       - ffa
     ports:
-      - "25577:25577"
+      - "${HOST_PORT:-0}:25577"
     networks:
       gateway:
         aliases:
@@ -86,7 +90,7 @@ services:
 
   # Paper server running via Gradle (run-paper plugin)
   paper:
-    image: eclipse-temurin:21-jdk
+    image: uebliche/base-java21
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -99,7 +103,8 @@ services:
       JAVA_TOOL_OPTIONS: ${PAPER_JAVA_TOOL_OPTIONS:--Xms512M -Xmx1G -XX:+UseG1GC}
       GRADLE_OPTS: ${PAPER_GRADLE_OPTS:--Dorg.gradle.jvmargs=-Xmx1G -Dorg.gradle.workers.max=2}
     labels:
-      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.autoregister: "${DOCKBRIDGE_AUTOREGISTER:-true}"
+      net.uebliche.dockbridge.autojoin: "${DOCKBRIDGE_AUTOJOIN:-false}"
       net.uebliche.dockbridge.server_name: "lobby"
       net.uebliche.dockbridge.server_port: "25565"
     command:
@@ -125,7 +130,7 @@ services:
       - hub
 
   ffa:
-    image: eclipse-temurin:25-jdk
+    image: uebliche/base-java25
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -136,7 +141,8 @@ services:
       VELOCITY_SECRET: "secret"
       ORG_GRADLE_JAVA_INSTALLATIONS_PATHS: /opt/java/openjdk
     labels:
-      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.autoregister: "${DOCKBRIDGE_AUTOREGISTER:-true}"
+      net.uebliche.dockbridge.autojoin: "${DOCKBRIDGE_AUTOJOIN:-false}"
       net.uebliche.dockbridge.server_name: "ffa"
       net.uebliche.dockbridge.server_port: "25565"
     command:
@@ -174,7 +180,7 @@ services:
       - hub
 
   fabric:
-    image: eclipse-temurin:21-jdk
+    image: uebliche/base-java21
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -188,7 +194,8 @@ services:
       GRADLE_OPTS: ${FABRIC_GRADLE_OPTS:--Dorg.gradle.jvmargs=-Xmx1G -Dorg.gradle.workers.max=1 -Dorg.gradle.daemon=false}
       FABRIC_GRADLE_ARGS: ${FABRIC_GRADLE_ARGS:-}
     labels:
-      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.autoregister: "${DOCKBRIDGE_AUTOREGISTER:-true}"
+      net.uebliche.dockbridge.autojoin: "${DOCKBRIDGE_AUTOJOIN:-false}"
       net.uebliche.dockbridge.server_name: "lobby-fabric"
       net.uebliche.dockbridge.server_port: "25565"
     command:
@@ -214,7 +221,7 @@ services:
       - hub
 
   neoforge:
-    image: eclipse-temurin:21-jdk
+    image: uebliche/base-java21
     working_dir: /workspace
     profiles:
       - neoforge
@@ -234,7 +241,8 @@ services:
       NEOFORM_DECOMPILE_XMX: ${NEOFORM_DECOMPILE_XMX:-3G}
       NEOFORM_VINEFLOWER_VERSION: ${NEOFORM_VINEFLOWER_VERSION:-org.vineflower:vineflower:1.11.2}
     labels:
-      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.autoregister: "${DOCKBRIDGE_AUTOREGISTER:-true}"
+      net.uebliche.dockbridge.autojoin: "${DOCKBRIDGE_AUTOJOIN:-false}"
       net.uebliche.dockbridge.server_name: "lobby-neoforge"
       net.uebliche.dockbridge.server_port: "25565"
     command:
@@ -260,7 +268,7 @@ services:
       - hub
 
   minestom:
-    image: eclipse-temurin:25-jdk
+    image: uebliche/base-java25
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -271,7 +279,8 @@ services:
       VELOCITY_SECRET: "secret"
       ORG_GRADLE_JAVA_INSTALLATIONS_PATHS: /opt/java/openjdk
     labels:
-      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.autoregister: "${DOCKBRIDGE_AUTOREGISTER:-true}"
+      net.uebliche.dockbridge.autojoin: "${DOCKBRIDGE_AUTOJOIN:-false}"
       net.uebliche.dockbridge.server_name: "lobby-minestom"
       net.uebliche.dockbridge.server_port: "25565"
     command:
@@ -314,7 +323,7 @@ services:
       - hub
 
   minigames-lobby:
-    image: eclipse-temurin:25-jdk
+    image: uebliche/base-java25
     working_dir: /workspace
     volumes:
       - ./:/workspace
@@ -326,7 +335,8 @@ services:
       HUB_MINESTOM_RUN_DIR: run-minigames-lobby
       ORG_GRADLE_JAVA_INSTALLATIONS_PATHS: /opt/java/openjdk
     labels:
-      net.uebliche.dockbridge.autoregister: "true"
+      net.uebliche.dockbridge.autoregister: "${DOCKBRIDGE_AUTOREGISTER:-true}"
+      net.uebliche.dockbridge.autojoin: "${DOCKBRIDGE_AUTOJOIN:-false}"
       net.uebliche.dockbridge.server_name: "lobby-minigames"
       net.uebliche.dockbridge.server_port: "25565"
     command:

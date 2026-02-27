@@ -42,7 +42,7 @@
       "uploads": [
         {
           "path": "release/**",
-          "key": "{S3_PROJECT}/{UPDATE_CHANNEL}/{relpath}"
+          "key": "hub/{UPDATE_CHANNEL}/{relpath}"
         }
       ],
       "deployTargets": {
@@ -145,11 +145,6 @@
         "release",
         "beta"
       ]
-    },
-    {
-      "default": "hub",
-      "key": "S3_PROJECT",
-      "label": "S3 project prefix"
     },
     {
       "default": "0",
